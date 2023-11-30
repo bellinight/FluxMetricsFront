@@ -1,5 +1,6 @@
 ﻿import streamlit as st
 import pandas as pd
+import time
 from sqlalchemy import create_engine as ce
 ############################ -----Configurações de Layout da HOME -----######################
 st.set_page_config(page_title="Front FLUX", page_icon=":chart",
@@ -25,8 +26,21 @@ mydb = ce(
 
 ############################# -----Conexão para extração de dados-----################################
 conc_query = "SELECT * FROM recebe_dados_conc"
+####################################################################
+
+
+@st.cache_resource  # 👈 Add the caching decorator
+def load_data():
+    result_conc = pd.read_sql(conc_query, mydb)
+    return result_conc
+
+
+result_conc = load_data()
+
+
+####################################################################
 # result_conc = conn.query('SELECT * FROM recebe_dados_conc;', ttl=600)
-result_conc = pd.read_sql(conc_query, mydb)
+# result_conc = pd.read_sql(conc_query, mydb)
 result_conc = result_conc.sort_values(by='controlID', ascending=False)
 result_conc = result_conc.drop_duplicates(subset=['rede_lojas', 'cli', 'loj', 'razsoc'])[['rede_lojas', 'cli', 'loj', 'razsoc', 'dte_atu', 'ver_flux', 'ver_jv', 'ver_pgs', 'con_ver',
                                                                                           'hd_free', 'tam_hd', 'perc_hd', 'bkp_kb_con', 'sem_id_carga', 'sem_data_carga', 'ser_sgbd', 'ser_carg_on', 'ser_tk_app', 'ser_dbridge', 'pv_con', 'uv_con', 'integracao_notas_dr', 'integracao_notas_mc']]
@@ -406,7 +420,7 @@ with st. container():
                                     st.caption('SEFAZ')
                                     if (f"{pdv_rej}") == '100':
                                         st.success(f"{pdv_rej}")
-                                    elif (f"{pdv_rej}") == '':
+                                    elif (f"{pdv_rej}") != '100':
                                         st.warning(f"Verificando")
                                     else:
                                         st.error(f"{pdv_rej}")
@@ -429,11 +443,6 @@ with st. container():
                                             st.caption('Nº NFCe')
                                             st.info(
                                                 f'{dados_nfce_pdv_numero}')
-                                            st.caption('ENVIADO')
-                                            if (f"{dados_nfce_pdv_enviado}") != "1":
-                                                st.error(f'Não')
-                                            else:
-                                                st.success(f"Sim")
 
                                         with col3:
                                             st.caption('CARGA')
@@ -450,9 +459,12 @@ with st. container():
                                                 st.success(f"OK")
 
                                         with col5:
-                                            st.caption('SITUAÇÃO')
-                                            st.info(
-                                                f"{dados_nfce_pdv_situacao}")
+                                            st.caption('ENVIADO')
+                                            if (f"{dados_nfce_pdv_enviado}") != "1":
+                                                st.error(f'Não')
+                                            else:
+                                                st.success(f"Sim")
+
                                             st.caption('EMAIL')
                                             if (f"{dados_nfce_pdv_email}") != '1':
                                                 st.error(f'Não')
@@ -478,8 +490,7 @@ with st. container():
                         st.write()
                 st.divider()
 
-# time.sleep(60)
-# st.experimental_rerun()
-
+# st.experimental_memo
+# st.runtime.legacy_caching.clear_cache()
 # st.write(st.session_state)
 # st.write('########################################################################')
