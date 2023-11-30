@@ -9,6 +9,9 @@ st.set_page_config(page_title="Front FLUX", page_icon=":chart",
 
 ########################## Funções Distintas ###############################################
 
+def recarregar_home():
+    st.experimental_rerun
+
 
 ############################################################################################
 
@@ -30,12 +33,12 @@ conc_query = "SELECT * FROM recebe_dados_conc"
 
 
 @st.cache_resource  # 👈 Add the caching decorator
-def load_data():
+def load_data_conc():
     result_conc = pd.read_sql(conc_query, mydb)
     return result_conc
 
 
-result_conc = load_data()
+result_conc = load_data_conc()
 
 
 ####################################################################
@@ -55,7 +58,18 @@ conc_razsoc = result_conc['razsoc']
 
 ############################# ----- Conexão com PDV´s ----- #############################
 pdv_query = "SELECT * FROM recebe_dados_pdv "
-result_pdv = pd.read_sql(pdv_query, mydb)
+
+
+@st.cache_resource  # 👈 Add the caching decorator
+def load_data_pdv():
+    result_pdv = pd.read_sql(pdv_query, mydb)
+    return result_pdv
+
+
+result_pdv = load_data_pdv()
+
+
+# result_pdv = pd.read_sql(pdv_query, mydb)
 result_pdv = result_pdv.sort_values(by='ID', ascending=False)
 result_pdv = result_pdv.drop_duplicates(
     subset=['cli', 'loj', 'pdv'])[['rede_lojas', 'cli', 'loj', 'pdv', 'pdv_at', 'pdv_ve', 'ult_ca', 'pdv_at_id', 'pdv_rej', 'dados_nfce_pdv_numero', 'dados_nfce_pdv_situacao', 'dados_nfce_pdv_valor', 'dados_nfce_pdv_usuario', 'dados_nfce_pdv_enviado', 'dados_nfce_pdv_data_fech', 'dados_nfce_pdv_scanntech', 'dados_nfce_pdv_email', 'dados_nfce_pdv_url_code', 'dados_nfce_pdv_nfemissao']]
@@ -189,7 +203,7 @@ with st. container():
 
         nome_loja_checkbox = grupoconc['razsoc'].to_list()[0]
         checkbox_selecao_loja = st.sidebar.checkbox(
-            f'{nome_loja_checkbox} ', value=True, key=conc_cliente+cli)
+            f'{nome_loja_checkbox} ', value=False, key=conc_cliente+cli)
         if checkbox_selecao_loja is True:
             if selecao_rede_me is not None:
                 lista_dados_conc = conc_dados_completos[conc_dados_completos['cli']
