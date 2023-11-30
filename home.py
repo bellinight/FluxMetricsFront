@@ -2,6 +2,7 @@
 import pandas as pd
 import time
 from sqlalchemy import create_engine as ce
+from streamlit_autorefresh import st_autorefresh
 ############################ -----Configurações de Layout da HOME -----######################
 st.set_page_config(page_title="Front FLUX", page_icon=":chart",
                    layout="wide", initial_sidebar_state="auto", menu_items=None)
@@ -10,11 +11,10 @@ st.set_page_config(page_title="Front FLUX", page_icon=":chart",
 ########################## Funções Distintas ###############################################
 
 def recarregar_home():
-    st.experimental_rerun
+    st.rerun()
 
 
 ############################################################################################
-
 # Conectar ao banco de dados
 username_bd = st.secrets['username']
 pass_bd = st.secrets["password"]
@@ -504,7 +504,10 @@ with st. container():
                         st.write()
                 st.divider()
 
-# st.experimental_memo
-# st.runtime.legacy_caching.clear_cache()
+st_autorefresh(interval=6000, limit=100, key="fizzbuzzcounter")
+# time.sleep(10)
+# st.rerun()
+# st.stop()
+st.runtime.legacy_caching.clear_cache()
 # st.write(st.session_state)
 # st.write('########################################################################')

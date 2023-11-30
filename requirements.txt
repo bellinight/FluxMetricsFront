@@ -1,3 +1,4 @@
 ﻿pandas
 SQLAlchemy
 mysql-connector-python
+streamlit_autorefresh
