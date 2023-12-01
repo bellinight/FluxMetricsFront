@@ -61,7 +61,7 @@ conc_razsoc = result_conc['razsoc']
 pdv_query = "SELECT * FROM recebe_dados_pdv "
 
 
-@st.cache_resource  # 👈 Add the caching decorator
+@st.cache_resource(ttl=60)  # 👈 Add the caching decorator
 def load_data_pdv():
     result_pdv = pd.read_sql(pdv_query, mydb)
     return result_pdv
