@@ -11,7 +11,8 @@ st.set_page_config(page_title="Front FLUX", page_icon=":chart",
 ########################## Funções Distintas ###############################################
 
 def recarregar_home():
-    st.rerun()
+    time.sleep(60)
+    st.cache_resource.clear()
 
 
 ############################################################################################
@@ -32,7 +33,7 @@ conc_query = "SELECT * FROM recebe_dados_conc"
 ####################################################################
 
 
-@st.cache_resource  # 👈 Add the caching decorator
+@st.cache_resource(ttl=60)  # 👈 Add the caching decorator
 def load_data_conc():
     result_conc = pd.read_sql(conc_query, mydb)
     return result_conc
@@ -503,11 +504,13 @@ with st. container():
                     else:
                         st.write()
                 st.divider()
-
-st_autorefresh(interval=6000, limit=100, key="fizzbuzzcounter")
-# time.sleep(10)
+# time.sleep(60)
+# load_data_conc()
+st_autorefresh(interval=60000, limit=100, key="fizzbuzzcounter")
+# time.sleep(30)
+# st.cache_resource.clear()
 # st.rerun()
 # st.stop()
-st.runtime.legacy_caching.clear_cache()
+
 # st.write(st.session_state)
 # st.write('########################################################################')
