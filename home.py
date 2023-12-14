@@ -1,8 +1,9 @@
-﻿import streamlit as st
+import streamlit as st
 import pandas as pd
 import time
 from sqlalchemy import create_engine as ce
 from streamlit_autorefresh import st_autorefresh
+from datetime import datetime
 ############################ -----Configurações de Layout da HOME -----######################
 st.set_page_config(page_title="Front FLUX", page_icon=":chart",
                    layout="wide", initial_sidebar_state="auto", menu_items=None)
@@ -11,7 +12,7 @@ st.set_page_config(page_title="Front FLUX", page_icon=":chart",
 ########################## Funções Distintas ###############################################
 
 def recarregar_home():
-    time.sleep(60)
+    # time.sleep(600)
     st.cache_resource.clear()
 
 
@@ -32,14 +33,15 @@ mydb = ce(
 conc_query = "SELECT * FROM recebe_dados_conc"
 ####################################################################
 
+with st.sidebar.status('Concentrador', expanded=True, state="complete") as statusconc:
+    @st.cache_resource(ttl=170)  # 👈 Add the caching decorator
+    def load_data_conc():
+        result_conc = pd.read_sql(conc_query, mydb)
+        return result_conc
 
-@st.cache_resource(ttl=60)  # 👈 Add the caching decorator
-def load_data_conc():
-    result_conc = pd.read_sql(conc_query, mydb)
-    return result_conc
-
-
-result_conc = load_data_conc()
+    result_conc = load_data_conc()
+    statusconc.update(label="Concentrador!",
+                      state="complete", expanded=False)
 
 
 ####################################################################
@@ -60,15 +62,15 @@ conc_razsoc = result_conc['razsoc']
 ############################# ----- Conexão com PDV´s ----- #############################
 pdv_query = "SELECT * FROM recebe_dados_pdv "
 
+with st.sidebar.status('PDV', expanded=True, state="running") as statuspdv:
+    @st.cache_resource(ttl=600)  # 👈 Add the caching decorator
+    def load_data_pdv():
+        result_pdv = pd.read_sql(pdv_query, mydb)
+        return result_pdv
 
-@st.cache_resource(ttl=60)  # 👈 Add the caching decorator
-def load_data_pdv():
-    result_pdv = pd.read_sql(pdv_query, mydb)
-    return result_pdv
-
-
-result_pdv = load_data_pdv()
-
+    result_pdv = load_data_pdv()
+    statuspdv.update(label="PDV",
+                     state="complete", expanded=False)
 
 # result_pdv = pd.read_sql(pdv_query, mydb)
 result_pdv = result_pdv.sort_values(by='ID', ascending=False)
@@ -226,6 +228,7 @@ with st. container():
                 hd_tam_gb = lista_dados_conc['tam_hd'].to_list()[0]
                 hd_livre = lista_dados_conc['perc_hd'].to_list()[0]
                 tam_bkp_conc = lista_dados_conc['bkp_kb_con'].to_list()[0]
+                tam_bkp_conc = round(float(tam_bkp_conc) / (1024 ** 2), 2)
                 id_carga_conc = lista_dados_conc['sem_id_carga'].to_list()[0]
                 data_carga_conc = lista_dados_conc['sem_data_carga'].dt.strftime(
                     '%d/%m/%y').to_list()[0]
@@ -254,14 +257,17 @@ with st. container():
                     st.info(f"{raz_loja} ")
                     st.caption(
                         f"Atualizado em: {atu_conc}")
+
                 with col2:
-                    st.caption("Central")
+                    st.caption("Central", help="Versão do Concentrador.")
                     st.info(f"{con_ve}")
                 with col3:
-                    st.caption("JAVA")
+                    st.caption(
+                        "JAVA", help="Versão do Java instalado no Concentrador.")
                     st.info(f"{java_ve}")
                 with col4:
-                    st.caption("HD")
+                    st.caption(
+                        "HDSCAN", help="Percentual de uso do HD do Concentrador")
                     if hd_livre <= '40':
                         st.success(f"{hd_livre} %")
                     elif hd_livre > '40' < '70':
@@ -269,17 +275,23 @@ with st. container():
                     else:
                         st.error(f"{hd_livre} %")
                 with col5:
-                    st.caption("BKP CONC")
-                    st.info(f"{tam_bkp_conc}\GB")
+                    st.caption(
+                        "Backup", help="Tamanho |EM GB| do Backup")
+                    st.info(f"{tam_bkp_conc}")
 
                 with col6:
-                    st.caption("Carga")
+                    st.caption(
+                        "Ult. Carga", help="Data do envio da ultima carga do Director para o Concentrador.")
                     st.info(f"{data_carga_conc}")
+
                 with col7:
-                    st.caption("IDCARGA")
+                    st.caption(
+                        "ID da carga", help="Identificação de controle da carga enviada do Director")
                     st.info(f"{id_carga_conc}")
+
                 with col8:
-                    st.caption("SGBD")
+                    st.caption(
+                        "SGBD", help="Status do serviço do SGBD do Concentrador. HOMOLOGADO: Postgresql")
                     if 'Stopped' in lista_dados_conc['ser_sgbd'].to_list():
                         st.error("SGBD :rotating_light:")
                     elif 'Running' in lista_dados_conc['ser_sgbd'].to_list():
@@ -287,7 +299,8 @@ with st. container():
                     else:
                         st.warning(f"{pgs_ve}")
                 with col9:
-                    st.caption("Mlogic")
+                    st.caption(
+                        "Mlogic", help="Status do serviço de carga online")
                     if 'Stopped' in lista_dados_conc['ser_carg_on'].to_list():
                         st.error("Mlogic :rotating_light:")
                     elif 'Running' in lista_dados_conc['ser_carg_on'].to_list():
@@ -295,7 +308,8 @@ with st. container():
                     else:
                         st.warning("Verificar")
                 with col10:
-                    st.caption("NFCe")
+                    st.caption(
+                        "NFCe", help="Status do serviço de autorização de notas fiscais.")
                     if 'Stopped' in lista_dados_conc['ser_tk_app'].to_list():
                         st.error("TK :rotating_light:")
                     elif 'Running' in lista_dados_conc['ser_tk_app'].to_list():
@@ -303,7 +317,8 @@ with st. container():
                     else:
                         st.warning("Verificar")
                 with col11:
-                    st.caption("Bridge")
+                    st.caption(
+                        "Bridge", help="Status do serviço de API Director <=> Concentrador")
                     if 'Stopped' in lista_dados_conc['ser_dbridge'].to_list():
                         st.error("Bridge :rotating_light:")
                     elif 'Running' in lista_dados_conc['ser_dbridge'].to_list():
@@ -311,27 +326,33 @@ with st. container():
                     else:
                         st.warning("Verificar")
                 with col12:
-                    st.caption("Integradas")
+                    st.caption(
+                        "Integradas", help="Numero de notas integradas com o Director nos últimos 31 dias.")
                     st.info(f"{integracao_notas_mc}")
                 with col13:
-                    st.caption("Pendentes")
+                    st.caption(
+                        "Pendentes", help="Numero de notas pendentes de integração com o Director.")
                     if integracao_notas_dr == "0":
                         st.success(f"{integracao_notas_dr}")
                     else:
                         st.error(f"{integracao_notas_dr}")
                 with col14:
-                    st.caption("Ver PDVs")
-                    mostrar_pdvs = st.toggle(f'PDV', key=id_cli+id_loja)
+                    st.caption(
+                        "Ver PDVs", help="Click para ativar e visualizar a lista de PDV´s de sua loja.")
+                    mostrar_pdvs = st.toggle(
+                        f'ON/OFF', key=id_cli+id_loja)
+                    st.divider()
                 with st.empty():
-
                     if mostrar_pdvs:
                         ########################################################################
                         pdv_dados_completos = result_pdv[result_pdv['cli'] == cli]
 
                         with st.container():
-                            st.divider()
-                            st.subheader(f'FRENTE DE LOJA = {raz_loja}')
-                            st.divider()
+                            # st.divider()
+                            st.subheader(
+                                f':convenience_store: {raz_loja}', help="Nome da loja acessada para verificação.")
+                            st.caption(
+                                "Verifique abaixo os detalhes do frente de loja")
 
                             # isall = st.sidebar.checkbox(label="Selecionar Todos", value=True, key=id_cli+hd_livre)
                             for (pdv, cli), grupopdv in pdv_dados_completos.groupby(['pdv', 'cli']):
@@ -343,6 +364,8 @@ with st. container():
                                 lista_dados_pdv = pdv_dados_completos[pdv_dados_completos['pdv'] == pdv]
                                 lista_dados_pdv['ult_ca'] = pd.to_datetime(
                                     lista_dados_pdv['ult_ca'])
+                                lista_dados_pdv['dados_nfce_pdv_data_fech'] = pd.to_datetime(
+                                    lista_dados_pdv['dados_nfce_pdv_data_fech'])
                                 ############ Monta Apresentação de dados do PDV ##########################
                                 lojas_rede = lista_dados_pdv['rede_lojas'].to_list()[
                                     0]
@@ -376,8 +399,10 @@ with st. container():
                                     0]
                                 dados_nfce_pdv_enviado = lista_dados_pdv['dados_nfce_pdv_enviado'].to_list()[
                                     0]
-                                dados_nfce_pdv_data_fech = lista_dados_pdv['dados_nfce_pdv_data_fech'].to_list()[
-                                    0]
+                                dados_nfce_pdv_data_fech = lista_dados_pdv['dados_nfce_pdv_data_fech'].dt.strftime(
+                                    '%d/%m/%y').to_list()[0]
+                                dados_nfce_pdv_data_hora = lista_dados_pdv['dados_nfce_pdv_data_fech'].dt.strftime(
+                                    '%d/%m - %H:%M:%S').to_list()[0]
                                 dados_nfce_pdv_scanntech = lista_dados_pdv['dados_nfce_pdv_scanntech'].to_list()[
                                     0]
                                 dados_nfce_pdv_email = lista_dados_pdv['dados_nfce_pdv_email'].to_list()[
@@ -393,117 +418,125 @@ with st. container():
                                     [1, 1, 1, 1, 1, 1, 1, 1, 1])
 
                                 with col01:
-                                    st.caption('PDV')
+                                    st.caption(
+                                        ' :shopping_trolley: PDV', help="Serie do PDV")
                                     st.info(f"{id_pdv}")
                                 with col02:
-                                    st.caption('Scanntech')
+                                    st.caption(
+                                        'Scanntech', help="NFce emitida com API Sncanntech ativada.")
                                     if (f"{dados_nfce_pdv_scanntech}") != '1':
-                                        st.error(f"OFF")
+                                        st.error(f"Desativada")
                                     else:
-                                        st.success(f"Online")
+                                        st.success(f"Integrada")
 
                                 with col03:
-                                    st.caption('CARGA')
+                                    st.caption(
+                                        'Data da Ultima Carga', help="Data de registro da ultima carga enviada para os PDV´s")
                                     if (f"{pdv_carg}") != data_carga_conc:
                                         st.error(f"{pdv_carg}")
                                     else:
                                         st.success(f"{pdv_carg}")
                                 with col04:
-                                    st.caption('ID')
+                                    st.caption(
+                                        'ID da Carga', help="ID da carga gerada e enviada aos PDV´s")
                                     if (f"{id_pdv_carg}") != id_carga_conc:
                                         st.error(f'{id_pdv_carg}')
                                     else:
                                         st.success(f"{id_pdv_carg}")
 
                                 with col05:
-                                    st.caption('VERSÃO')
+                                    st.caption(
+                                        'VERSÃO', help="Versão do Concentrador")
                                     if (f"{ve_pdv}") != con_ve:
                                         st.error(f"{ve_pdv}")
 
                                     else:
                                         st.success(f"{ve_pdv}")
                                 with col06:
-                                    st.caption('Checkout')
-                                    st.info(
-                                        f" {dados_nfce_pdv_data_fech}")
-                                    st.caption("Tempo Ocioso")
+                                    st.caption(
+                                        'Ult. Venda', help="Data da ultima emissão de NFCe")
+                                    if (f"{dados_nfce_pdv_data_fech}") < pdv_carg:
+                                        st.error(f"OCIOSO")
+                                        st.toast(
+                                            f'{id_pdv}, esta ligado e sem operador!', icon='😡')
+                                    else:
+                                        st.success(
+                                            f"{dados_nfce_pdv_data_fech}")
+
                                 with col07:
-                                    st.caption('Nº NFCe')
+                                    st.caption(
+                                        'Ult. NFCe', help="Numero da ultima NFCe emitida no PDV")
                                     st.info(
                                         f"{dados_nfce_pdv_numero}")
                                 with col08:
-                                    st.caption('SEFAZ')
+                                    st.caption(
+                                        'SEFAZ', help="Resposta da SEFAZ para a autorização da NFCe. Se a rejeição apresentar numero diferente de 100, acesse o TOOLKIT para verificação.")
                                     if (f"{pdv_rej}") == '100':
                                         st.success(f"{pdv_rej}")
                                     elif (f"{pdv_rej}") != '100':
-                                        st.warning(f"Verificando")
+                                        st.warning(f"Verifique {pdv_rej}")
                                     else:
-                                        st.error(f"{pdv_rej}")
+                                        st.error(f"Sem Emissão")
                                 with col09:
-                                    st.caption("VER +")
-                                    detalhes_do_pdv = st.toggle(
-                                        f'ON/OFF', key=id_cli+id_pdv)
+                                    st.caption(
+                                        "Ult. Transação", help="Click e acesse os dados da ultima transação no PDV")
+                                    detalhes_do_pdv = st.button(
+                                        f'Verificar', key=id_cli+id_pdv)
 
                                 with st.container():
-                                    st.divider()
+                                    # st.divider()
                                     if detalhes_do_pdv:
-                                        col1, col2, col3, col4, col5, col6, col7, col8 = st.columns(
-                                            [2, 1, 1, 1, 1, 1, 1, 1])
+                                        col1, col2, col3, col4, col5, col6, col7 = st.columns(
+                                            [2, 1, 1, 1, 1, 1, 1])
+                                        st.caption(
+                                            "Detalhes da ultima transação")
                                         with col1:
-                                            st.caption('Usuario')
+                                            st.caption(
+                                                'Usuário', help="Usuário Logado na hora da Transação")
                                             st.info(
                                                 f'{dados_nfce_pdv_usuario}')
-
                                         with col2:
-                                            st.caption('Nº NFCe')
+                                            st.caption(
+                                                'Nº NFCe', help="Numero da NFCE na hora da Transação")
                                             st.info(
                                                 f'{dados_nfce_pdv_numero}')
-
                                         with col3:
-                                            st.caption('CARGA')
-                                            st.info(f'{id_pdv_carg}')
-
-                                        with col4:
-                                            st.caption('VALOR')
+                                            st.caption(
+                                                'VALOR', help="Valor total da NFCe no momento da Transação")
                                             st.info(
                                                 f"{dados_nfce_pdv_valor}")
-                                            st.caption('IMPRESSORA')
-                                            if (f"{dados_nfce_pdv_nfemissao}") != "1":
-                                                st.error(f'Falha')
-                                            else:
-                                                st.success(f"OK")
-
-                                        with col5:
-                                            st.caption('ENVIADO')
+                                        with col4:
+                                            st.caption(
+                                                'ENVIADA', help='Integrada com o Concentrador')
                                             if (f"{dados_nfce_pdv_enviado}") != "1":
                                                 st.error(f'Não')
                                             else:
                                                 st.success(f"Sim")
-
-                                            st.caption('EMAIL')
+                                        with col5:
+                                            st.caption(f"Hora da Transação")
+                                            st.info(
+                                                f"{dados_nfce_pdv_data_hora}")
+                                        with col6:
+                                            st.caption(
+                                                'EMAIL', help="Mostra se a NFCe foi enviada para email do cliente")
                                             if (f"{dados_nfce_pdv_email}") != '1':
                                                 st.error(f'Não')
                                             else:
                                                 st.success(f"Sim")
-
-                                        with col6:
-                                            st.caption('TEF')
-                                            st.success('OK')
-                                            st.caption('SEFAZ')
-                                            st.success('OK')
-
                                         with col7:
-                                            st.caption('NFCE')
+                                            st.caption(
+                                                'Nota Online', help="Verificar nota diretamente no site da SEFAZ")
                                             st.link_button(
-                                                "Ver", f"{dados_nfce_pdv_url_code}", type="secondary")
-
+                                                "Visualizar", f"{dados_nfce_pdv_url_code}")
                                         st.divider()
                                     else:
                                         st.write()
                             st.sidebar.divider()
+                            st.divider()
                     else:
                         st.write()
-                st.divider()
+
+
 # time.sleep(60)
 # load_data_conc()
 st_autorefresh(interval=60000, limit=100, key="fizzbuzzcounter")
