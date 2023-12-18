@@ -84,7 +84,7 @@ data_hora_atual = data_hora_atual.strftime('%d/%m/%y')
 pdv_query = "SELECT * FROM recebe_dados_pdv "
 
 with st.sidebar.status('PDV', expanded=True, state="running") as statuspdv:
-    @st.cache_resource(ttl=600)  # 👈 Add the caching decorator
+    @st.cache_resource(ttl=180)  # 👈 Add the caching decorator
     def load_data_pdv():
         result_pdv = pd.read_sql(pdv_query, mydb)
         return result_pdv
@@ -437,7 +437,7 @@ with st. container():
                                 ############ Monta layout para apresentação dos dados e erros ##########################
                                 # st.table(lista_dados_pdv)
                                 col01, col02, col03, col04, col05, col06, col07, col08, col09, col10 = st.columns(
-                                    [3, 2, 2, 2, 2, 2, 2, 2, 1, 3])
+                                    [2, 2, 2, 2, 2, 2, 1, 1, 1, 1])
 
                                 with col01:
                                     st.caption(
@@ -459,12 +459,14 @@ with st. container():
                                     elif (f"{pdv_carg}") < data_hora_atual:
                                         st.warning(f"DESLIGADO")
                                     else:
-                                        st.success(f"{pdv_atu}")
+                                        st.success(f"{pdv_carg}")
                                 with col04:
                                     st.caption(
                                         'ID da Carga', help="ID da carga gerada e enviada aos PDV´s")
                                     if (f"{id_pdv_carg}") != id_carga_conc:
                                         st.error(f'{id_pdv_carg}')
+                                        st.toast(
+                                            f'{id_pdv},Trabalhando com Preços Antigos!', icon='😡')
                                     else:
                                         st.success(f"{id_pdv_carg}")
 
@@ -472,9 +474,9 @@ with st. container():
                                     st.caption(
                                         'VERSÃO', help="Versão do PDV")
                                     if (f"{ve_pdv}") == " ":
-                                        st.error(f"{ve_pdv}")
+                                        st.error(f"ERROR")
                                     elif (f"{ve_pdv}") < con_ve:
-                                        st.warning(f'{ve_pdv}')
+                                        st.warning(f'Atualize')
 
                                     else:
                                         st.success(f"{ve_pdv}")
@@ -483,9 +485,9 @@ with st. container():
                                     st.caption(
                                         'Ult. Venda', help="Data da ultima emissão de NFCe")
                                     if (f"{dados_nfce_pdv_data_fech}") < data_hora_atual:
-                                        st.error(f"OCIOSO {data_hora_atual}")
+                                        st.error(f"OCIOSO")
                                         st.toast(
-                                            f'{id_pdv}, esta ligado e sem operador!', icon='😡')
+                                            f'{id_pdv}, OCIOSO!', icon='😡')
                                     else:
                                         st.success(
                                             f"{dados_nfce_pdv_data_fech}")
@@ -510,13 +512,13 @@ with st. container():
                                     detalhes_do_pdv = st.button(
                                         f'Verificar', key=id_cli+id_pdv)
                                 with col10:
-                                    st.caption(
-                                        'Atualizar', help="Atualizar")
+                                    st.write("")
                                     if (f"{ve_pdv}") < con_ve:
-                                        if st.button(f"Atualizar", key=id_cli+id_loja+id_pdv):
+                                        st.write("Versão 📛")
+                                        if st.button(f"Atualizar", key=id_cli+id_loja+id_pdv, help="Click no botão para efetuar a atualização do PDV"):
                                             anin_atualizando()
                                     else:
-                                        st.write(" ")
+                                        st.write("Versão ✅")
 
                                 with st.container():
                                     # st.divider()
