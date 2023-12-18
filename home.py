@@ -12,11 +12,26 @@ st.set_page_config(page_title="Front FLUX", page_icon=":chart",
 ########################## Funções Distintas ###############################################
 
 def recarregar_home():
-    # time.sleep(6000)
+    time.sleep(9000)
     st.cache_resource.clear()
 
 
-############################################################################################
+def anin_atualizando():
+    with st.status("Atualizando...", expanded=True) as status:
+        time.sleep(10)
+        st.write(
+            "Lendo dados do PDV...")
+        load_data_pdv()
+        st.write(
+            "Instalando PDV...")
+        time.sleep(10)
+
+        status.update(
+            label="Instalação Finalizada!", state="complete", expanded=False)
+        st.success('Pronto!')
+
+
+############################# -----Conexão para extração de dados-----################################
 # Conectar ao banco de dados
 username_bd = st.secrets['username']
 pass_bd = st.secrets["password"]
@@ -28,13 +43,12 @@ mydb = ce(
     f'mysql+mysqlconnector://{username_bd}:{pass_bd}@{host_bd}/{name_bd}')
 # conn = st.connection('mysql', type='sql')
 
-
-############################# -----Conexão para extração de dados-----################################
+##################### Query Principal Central ##############################
 conc_query = "SELECT * FROM recebe_dados_conc"
 ####################################################################
 
 with st.sidebar.status('Concentrador', expanded=True, state="complete") as statusconc:
-    @st.cache_resource(ttl=170)  # 👈 Add the caching decorator
+    @st.cache_resource(ttl=180)  # 👈 Add the caching decorator
     def load_data_conc():
         result_conc = pd.read_sql(conc_query, mydb)
         return result_conc
@@ -44,20 +58,27 @@ with st.sidebar.status('Concentrador', expanded=True, state="complete") as statu
                       state="complete", expanded=False)
 
 
-####################################################################
+############################ Monta Dados Solicitados na Query Principal ########################################
 # result_conc = conn.query('SELECT * FROM recebe_dados_conc;', ttl=600)
 # result_conc = pd.read_sql(conc_query, mydb)
 result_conc = result_conc.sort_values(by='controlID', ascending=False)
-result_conc = result_conc.drop_duplicates(subset=['rede_lojas', 'cli', 'loj', 'razsoc'])[['rede_lojas', 'cli', 'loj', 'razsoc', 'dte_atu', 'ver_flux', 'ver_jv', 'ver_pgs', 'con_ver',
+result_conc = result_conc.drop_duplicates(subset=['rede_lojas', 'cli', 'loj', 'razsoc'])[['controlID', 'rede_lojas', 'cli', 'loj', 'razsoc', 'dte_atu', 'ver_flux', 'ver_jv', 'ver_pgs', 'con_ver',
                                                                                           'hd_free', 'tam_hd', 'perc_hd', 'bkp_kb_con', 'sem_id_carga', 'sem_data_carga', 'ser_sgbd', 'ser_carg_on', 'ser_tk_app', 'ser_dbridge', 'pv_con', 'uv_con', 'integracao_notas_dr', 'integracao_notas_mc']]
-result_conc_ori = result_conc[['rede_lojas', 'cli', 'loj', 'razsoc', 'dte_atu', 'ver_flux', 'ver_jv', 'ver_pgs', 'con_ver', 'hd_free', 'tam_hd',
+result_conc_ori = result_conc[['controlID', 'rede_lojas', 'cli', 'loj', 'razsoc', 'dte_atu', 'ver_flux', 'ver_jv', 'ver_pgs', 'con_ver', 'hd_free', 'tam_hd',
                                'perc_hd', 'bkp_kb_con', 'sem_id_carga', 'sem_data_carga', 'ser_sgbd', 'ser_carg_on', 'ser_tk_app', 'ser_dbridge', 'pv_con', 'uv_con', 'integracao_notas_dr', 'integracao_notas_mc']]
 
+
+################################ Variaveis do Concentrador #############################################
 conc_rede_lojas = result_conc_ori['rede_lojas'].unique()
 conc_cliente = result_conc['cli']
 conc_loja = result_conc_ori['loj'].unique()
 conc_razsoc = result_conc['razsoc']
-
+controlid_dados_completo = result_conc_ori.head(1)
+controlid_razao = controlid_dados_completo['razsoc'].to_list()[0]
+controlid_rede = controlid_dados_completo['rede_lojas'].to_list()[0]
+mlogic_ver_hom = '14.5.1'
+data_hora_atual = datetime.now().date()
+data_hora_atual = data_hora_atual.strftime('%d/%m/%y')
 
 ############################# ----- Conexão com PDV´s ----- #############################
 pdv_query = "SELECT * FROM recebe_dados_pdv "
@@ -112,17 +133,18 @@ with st.container():
     with col5:
         st.write()
     with col6:
-        st.info(":closed_book: Versão Homologada - 14.5.1")
+        st.caption(f"ÚLTIMOS DADOS: {controlid_rede} - {controlid_razao}")
+        st.info(f":closed_book: Versão Homologada - {mlogic_ver_hom}")
 
     # st.markdown("<h4 style='text-align: center; '>Layout de Erros</h4>", unsafe_allow_html=True)
 
 ########################### NOTIFICAÇÕES ###################################
 with st.container():
 
-    col01, col02, col03, col04 = st.columns(4)
+    col01, col02, col03, col04, col05, col06, col07 = st.columns(7)
     ########################################################################
     with col01:
-        st.caption("BANCO DE DADOS")
+        st.caption("ERROS NO SGBD")
         notifica_erros_sgbd = result_conc_ori[result_conc_ori['ser_sgbd'] == 'Stopped']
         notifica_erros_sgbd = notifica_erros_sgbd[[
             'rede_lojas', 'razsoc', 'ser_sgbd']]
@@ -132,7 +154,7 @@ with st.container():
             if not notifica_erros_sgbd.empty:
                 st.error(
                     f'{sgbd_erros_rede}', icon="🚨")
-            else:
+            if notifica_erros_sgbd.empty:
                 st.write("SEM ERROS PARA APRESENTAR")
     ########################################################################
     with col02:
@@ -147,7 +169,7 @@ with st.container():
                 st.error(
                     f"{tk_erros_rede}", icon="🚨")
                 st.toast(f'TK OFFLINE - Verifique a lista')
-            else:
+            if notifica_erros_tk.empty:
                 st.write("SEM ERROS PARA APRESENTAR")
     ########################################################################
     with col03:
@@ -414,8 +436,8 @@ with st. container():
 
                                 ############ Monta layout para apresentação dos dados e erros ##########################
                                 # st.table(lista_dados_pdv)
-                                col01, col02, col03, col04, col05, col06, col07, col08, col09 = st.columns(
-                                    [1, 1, 1, 1, 1, 1, 1, 1, 1])
+                                col01, col02, col03, col04, col05, col06, col07, col08, col09, col10 = st.columns(
+                                    [3, 2, 2, 2, 2, 2, 2, 2, 1, 3])
 
                                 with col01:
                                     st.caption(
@@ -423,7 +445,7 @@ with st. container():
                                     st.info(f"{id_pdv}")
                                 with col02:
                                     st.caption(
-                                        'Scanntech', help="NFce emitida com API Sncanntech ativada.")
+                                        'Scanntech', help="NFce emitida com API Scanntech ativada.")
                                     if (f"{dados_nfce_pdv_scanntech}") != '1':
                                         st.error(f"Desativada")
                                     else:
@@ -432,10 +454,12 @@ with st. container():
                                 with col03:
                                     st.caption(
                                         'Data da Ultima Carga', help="Data de registro da ultima carga enviada para os PDV´s")
-                                    if (f"{pdv_carg}") != data_carga_conc:
+                                    if (f"{pdv_carg}") < data_carga_conc:
                                         st.error(f"{pdv_carg}")
+                                    elif (f"{pdv_carg}") < data_hora_atual:
+                                        st.warning(f"DESLIGADO")
                                     else:
-                                        st.success(f"{pdv_carg}")
+                                        st.success(f"{pdv_atu}")
                                 with col04:
                                     st.caption(
                                         'ID da Carga', help="ID da carga gerada e enviada aos PDV´s")
@@ -446,17 +470,20 @@ with st. container():
 
                                 with col05:
                                     st.caption(
-                                        'VERSÃO', help="Versão do Concentrador")
-                                    if (f"{ve_pdv}") != con_ve:
+                                        'VERSÃO', help="Versão do PDV")
+                                    if (f"{ve_pdv}") == " ":
                                         st.error(f"{ve_pdv}")
+                                    elif (f"{ve_pdv}") < con_ve:
+                                        st.warning(f'{ve_pdv}')
 
                                     else:
                                         st.success(f"{ve_pdv}")
+
                                 with col06:
                                     st.caption(
                                         'Ult. Venda', help="Data da ultima emissão de NFCe")
-                                    if (f"{dados_nfce_pdv_data_fech}") < pdv_carg:
-                                        st.error(f"OCIOSO")
+                                    if (f"{dados_nfce_pdv_data_fech}") < data_hora_atual:
+                                        st.error(f"OCIOSO {data_hora_atual}")
                                         st.toast(
                                             f'{id_pdv}, esta ligado e sem operador!', icon='😡')
                                     else:
@@ -482,6 +509,14 @@ with st. container():
                                         "Ult. Transação", help="Click e acesse os dados da ultima transação no PDV")
                                     detalhes_do_pdv = st.button(
                                         f'Verificar', key=id_cli+id_pdv)
+                                with col10:
+                                    st.caption(
+                                        'Atualizar', help="Atualizar")
+                                    if (f"{ve_pdv}") < con_ve:
+                                        if st.button(f"Atualizar", key=id_cli+id_loja+id_pdv):
+                                            anin_atualizando()
+                                    else:
+                                        st.write(" ")
 
                                 with st.container():
                                     # st.divider()
