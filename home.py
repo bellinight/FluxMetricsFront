@@ -48,7 +48,7 @@ conc_query = "SELECT * FROM recebe_dados_conc"
 ####################################################################
 
 with st.sidebar.status('Concentrador', expanded=True, state="complete") as statusconc:
-    @st.cache_resource(ttl=180)  # 👈 Add the caching decorator
+    @st.cache_resource(ttl=600)  # 👈 Add the caching decorator
     def load_data_conc():
         result_conc = pd.read_sql(conc_query, mydb)
         return result_conc
@@ -84,7 +84,7 @@ data_hora_atual = data_hora_atual.strftime('%d/%m/%y')
 pdv_query = "SELECT * FROM recebe_dados_pdv "
 
 with st.sidebar.status('PDV', expanded=True, state="running") as statuspdv:
-    @st.cache_resource(ttl=180)  # 👈 Add the caching decorator
+    @st.cache_resource(ttl=600)  # 👈 Add the caching decorator
     def load_data_pdv():
         result_pdv = pd.read_sql(pdv_query, mydb)
         return result_pdv
