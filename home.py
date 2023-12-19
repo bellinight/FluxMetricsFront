@@ -44,7 +44,7 @@ mydb = ce(
 # conn = st.connection('mysql', type='sql')
 
 ##################### Query Principal Central ##############################
-conc_query = "SELECT * FROM recebe_dados_conc"
+conc_query = "SELECT * FROM recebe_dados_conc limit 500"
 ####################################################################
 
 with st.sidebar.status('Concentrador', expanded=True, state="complete") as statusconc:
@@ -81,7 +81,7 @@ data_hora_atual = datetime.now().date()
 data_hora_atual = data_hora_atual.strftime('%d/%m/%y')
 
 ############################# ----- Conexão com PDV´s ----- #############################
-pdv_query = "SELECT * FROM recebe_dados_pdv "
+pdv_query = "SELECT * FROM recebe_dados_pdv limit 10000"
 
 with st.sidebar.status('PDV', expanded=True, state="running") as statuspdv:
     @st.cache_resource(ttl=600)  # 👈 Add the caching decorator
