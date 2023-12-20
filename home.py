@@ -44,7 +44,7 @@ mydb = ce(
 # conn = st.connection('mysql', type='sql')
 
 ##################### Query Principal Central ##############################
-conc_query = "SELECT * FROM recebe_dados_conc limit 500"
+conc_query = "SELECT * FROM recebe_dados_conc"
 ####################################################################
 
 with st.sidebar.status('Concentrador', expanded=True, state="complete") as statusconc:
@@ -66,7 +66,7 @@ result_conc = result_conc.drop_duplicates(subset=['rede_lojas', 'cli', 'loj', 'r
                                                                                           'hd_free', 'tam_hd', 'perc_hd', 'bkp_kb_con', 'sem_id_carga', 'sem_data_carga', 'ser_sgbd', 'ser_carg_on', 'ser_tk_app', 'ser_dbridge', 'pv_con', 'uv_con', 'integracao_notas_dr', 'integracao_notas_mc']]
 result_conc_ori = result_conc[['controlID', 'rede_lojas', 'cli', 'loj', 'razsoc', 'dte_atu', 'ver_flux', 'ver_jv', 'ver_pgs', 'con_ver', 'hd_free', 'tam_hd',
                                'perc_hd', 'bkp_kb_con', 'sem_id_carga', 'sem_data_carga', 'ser_sgbd', 'ser_carg_on', 'ser_tk_app', 'ser_dbridge', 'pv_con', 'uv_con', 'integracao_notas_dr', 'integracao_notas_mc']]
-
+result_conc_filter = pd.unique(result_conc["cli"])
 
 ################################ Variaveis do Concentrador #############################################
 conc_rede_lojas = result_conc_ori['rede_lojas'].unique()
@@ -79,9 +79,13 @@ controlid_rede = controlid_dados_completo['rede_lojas'].to_list()[0]
 mlogic_ver_hom = '14.5.1'
 data_hora_atual = datetime.now().date()
 data_hora_atual = data_hora_atual.strftime('%d/%m/%y')
+sum_lojas = len(result_conc.loj)
+conta_clientes = result_conc['rede_lojas'].unique()
+sum_clientes = len(conta_clientes)
+
 
 ############################# ----- Conexão com PDV´s ----- #############################
-pdv_query = "SELECT * FROM recebe_dados_pdv limit 10000"
+pdv_query = (f"SELECT * FROM recebe_dados_pdv")
 
 with st.sidebar.status('PDV', expanded=True, state="running") as statuspdv:
     @st.cache_resource(ttl=600)  # 👈 Add the caching decorator
@@ -93,24 +97,16 @@ with st.sidebar.status('PDV', expanded=True, state="running") as statuspdv:
     statuspdv.update(label="PDV",
                      state="complete", expanded=False)
 
-# result_pdv = pd.read_sql(pdv_query, mydb)
 result_pdv = result_pdv.sort_values(by='ID', ascending=False)
 result_pdv = result_pdv.drop_duplicates(
     subset=['cli', 'loj', 'pdv'])[['rede_lojas', 'cli', 'loj', 'pdv', 'pdv_at', 'pdv_ve', 'ult_ca', 'pdv_at_id', 'pdv_rej', 'dados_nfce_pdv_numero', 'dados_nfce_pdv_situacao', 'dados_nfce_pdv_valor', 'dados_nfce_pdv_usuario', 'dados_nfce_pdv_enviado', 'dados_nfce_pdv_data_fech', 'dados_nfce_pdv_scanntech', 'dados_nfce_pdv_email', 'dados_nfce_pdv_url_code', 'dados_nfce_pdv_nfemissao']]
-pdvs = result_pdv[['rede_lojas', 'pdv', 'loj', 'cli']]
 
-# st.write(pdvs)
-
-########################### Variáveis de aviso #########################
-result_conc_filter = pd.unique(result_conc["cli"])
+########################### Variáveis PDV #########################
 result_pdv_filter = pd.unique(result_pdv['loj'])
-
+pdvs = result_pdv[['rede_lojas', 'pdv', 'loj', 'cli']]
+sum_pdvs = len(pdvs)
 ###############################################################
 # st.table(result_pdv_erros)
-sum_pdvs = len(pdvs)
-sum_lojas = len(result_conc.loj)
-conta_clientes = result_conc['rede_lojas'].unique()
-sum_clientes = len(conta_clientes)
 
 
 #######################################################
@@ -121,7 +117,7 @@ st.markdown("<h6 style='text-align: center; '>Gerencie seu Frente de Loja</h6>",
 
 ########################################################################
 with st.container():
-    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 1])
+    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 2])
     with col1:
         st.subheader(f"Clientes: {sum_clientes}")
     with col2:
@@ -202,6 +198,47 @@ with st.container():
                 st.write("SEM ERROS PARA APRESENTAR")
 
             # st.write(grupo4)
+    ########################################################################
+    with col05:
+        with st.expander("Centrais Desatualizadas"):
+
+            notifica_atualizaveis_conc = result_conc_ori[result_conc_ori['con_ver']
+                                                         < mlogic_ver_hom]
+            notifica_atualizaveis_pend = notifica_atualizaveis_conc[[
+                'rede_lojas', 'razsoc']]
+            # notifica_erros_carga_rede_bridge = notifica_erros_bridge['rede_lojas'].to_list()[0]
+            for i5, grupo5 in notifica_atualizaveis_pend.groupby('razsoc'):
+                atualizaveis_cent_rede = i5
+                atualizaveis_cent_rede_nome = grupo5['rede_lojas'].to_list()[0]
+
+                if not notifica_atualizaveis_pend.empty:
+                    st.error(
+                        f"||{atualizaveis_cent_rede_nome}|| - {atualizaveis_cent_rede}")
+                else:
+                    st.write("SEM ERROS PARA APRESENTAR")
+
+            # st.write(grupo5)
+    ########################################################################
+    with col06:
+        with st.expander("Centrais Atualizadas"):
+
+            notifica_atualizadas_conc = result_conc_ori[result_conc_ori['con_ver']
+                                                        == mlogic_ver_hom]
+            notifica_atualizadas_cent = notifica_atualizadas_conc[[
+                'rede_lojas', 'razsoc']]
+            # notifica_erros_carga_rede_bridge = notifica_erros_bridge['rede_lojas'].to_list()[0]
+            for i6, grupo6 in notifica_atualizadas_cent.groupby('razsoc'):
+                atualizadas_cent_rede = i6
+                atualizadas_cent_rede_nome = grupo6['rede_lojas'].to_list()[0]
+
+                if not notifica_atualizadas_cent.empty:
+                    st.success(
+                        f"||{atualizadas_cent_rede_nome}|| - {atualizadas_cent_rede}  ")
+                else:
+                    st.write("SEM ERROS PARA APRESENTAR")
+
+            # st.write(grupo6)
+
 
 ########################### SIDEBAR DE OPÇÕES ##############################
 
@@ -254,7 +291,6 @@ with st. container():
                 id_carga_conc = lista_dados_conc['sem_id_carga'].to_list()[0]
                 data_carga_conc = lista_dados_conc['sem_data_carga'].dt.strftime(
                     '%d/%m/%y').to_list()[0]
-
                 ser_sgbd = lista_dados_conc['ser_sgbd'].to_list()[0]
                 ser_carg_on = lista_dados_conc['ser_carg_on'].to_list()[0]
                 ser_tk_app = lista_dados_conc['ser_tk_app'].to_list()[0]
@@ -271,7 +307,7 @@ with st. container():
                 total_pdvs_loja = len(total_pdvs_loja)
                 ####### LAYOUT DE APRESENTAÇÃO DE DADOS DA CENTRAL ###########
                 col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12, col13, col14 = st.columns(
-                    [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1])
+                    [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
 
                 with col1:
                     st.caption(
@@ -437,7 +473,7 @@ with st. container():
                                 ############ Monta layout para apresentação dos dados e erros ##########################
                                 # st.table(lista_dados_pdv)
                                 col01, col02, col03, col04, col05, col06, col07, col08, col09, col10 = st.columns(
-                                    [2, 2, 2, 2, 2, 2, 1, 1, 1, 1])
+                                    [2, 2, 2, 2, 2, 2, 1, 1, 1, 2])
 
                                 with col01:
                                     st.caption(
