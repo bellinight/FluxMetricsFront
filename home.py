@@ -119,11 +119,11 @@ st.markdown("<h6 style='text-align: center; '>Gerencie seu Frente de Loja</h6>",
 with st.container():
     col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 2])
     with col1:
-        st.subheader(f"Clientes: {sum_clientes}")
+        st.write()
     with col2:
-        st.subheader(f"Lojas: {sum_lojas}")
+        st.write()
     with col3:
-        st.subheader(f"PDV: {sum_pdvs}")
+        st.write()
     with col4:
         st.write()
     with col5:
@@ -136,8 +136,20 @@ with st.container():
 
 ########################### NOTIFICAÇÕES ###################################
 with st.container():
+    notifica_atualizaveis_conc = result_conc_ori[result_conc_ori['con_ver']
+                                                 < mlogic_ver_hom]
+    notifica_atualizaveis_pend = notifica_atualizaveis_conc[[
+        'rede_lojas', 'razsoc']]
+    numero_lojas_atualizaveis = len(notifica_atualizaveis_pend)
 
-    col01, col02, col03, col04, col05, col06, col07 = st.columns(7)
+    notifica_atualizadas_conc = result_conc_ori[result_conc_ori['con_ver']
+                                                == mlogic_ver_hom]
+    notifica_atualizadas_cent = notifica_atualizadas_conc[[
+        'rede_lojas', 'razsoc']]
+    numero_lojas_atualizadas = len(notifica_atualizadas_cent)
+
+    col01, col02, col03, col04, col05, col06, col07 = st.columns(
+        [1, 1, 1, 1, 2, 1, 1])
     ########################################################################
     with col01:
         st.caption("ERROS NO SGBD")
@@ -198,14 +210,20 @@ with st.container():
                 st.write("SEM ERROS PARA APRESENTAR")
 
             # st.write(grupo4)
-    ########################################################################
     with col05:
+        col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
+        col1.metric(f"{mlogic_ver_hom}", f"{numero_lojas_atualizadas}",
+                    f"Defict {numero_lojas_atualizaveis}")
+        col2.metric("Clientes", f"{sum_lojas}", f"Meta 50")
+        col3.metric("PDVS", f"{sum_pdvs}", f"Meta 1000")
+        col4.metric("Redes", f"{sum_clientes}", f'Meta 100')
+        col5.metric(
+            "Check", f"{numero_lojas_atualizaveis}")
+    ########################################################################
+    with col06:
         with st.expander("Centrais Desatualizadas"):
 
-            notifica_atualizaveis_conc = result_conc_ori[result_conc_ori['con_ver']
-                                                         < mlogic_ver_hom]
-            notifica_atualizaveis_pend = notifica_atualizaveis_conc[[
-                'rede_lojas', 'razsoc']]
+            st.write(numero_lojas_atualizaveis)
             # notifica_erros_carga_rede_bridge = notifica_erros_bridge['rede_lojas'].to_list()[0]
             for i5, grupo5 in notifica_atualizaveis_pend.groupby('razsoc'):
                 atualizaveis_cent_rede = i5
@@ -219,21 +237,18 @@ with st.container():
 
             # st.write(grupo5)
     ########################################################################
-    with col06:
+
+    with col07:
         with st.expander("Centrais Atualizadas"):
 
-            notifica_atualizadas_conc = result_conc_ori[result_conc_ori['con_ver']
-                                                        == mlogic_ver_hom]
-            notifica_atualizadas_cent = notifica_atualizadas_conc[[
-                'rede_lojas', 'razsoc']]
-            # notifica_erros_carga_rede_bridge = notifica_erros_bridge['rede_lojas'].to_list()[0]
+            st.write(numero_lojas_atualizadas)
             for i6, grupo6 in notifica_atualizadas_cent.groupby('razsoc'):
                 atualizadas_cent_rede = i6
                 atualizadas_cent_rede_nome = grupo6['rede_lojas'].to_list()[0]
 
                 if not notifica_atualizadas_cent.empty:
                     st.success(
-                        f"||{atualizadas_cent_rede_nome}|| - {atualizadas_cent_rede}  ")
+                        f"||{atualizadas_cent_rede_nome}|| - {atualizadas_cent_rede}")
                 else:
                     st.write("SEM ERROS PARA APRESENTAR")
 
