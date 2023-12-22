@@ -326,14 +326,19 @@ with st. container():
 
                 with col1:
                     st.caption(
-                        f"{lojas_rede} || {flux_ve} || PDV: {total_pdvs_loja}")
-                    st.info(f"{raz_loja} ")
+                        f"{lojas_rede} || {flux_ve} || ")
+                    st.info(f"{raz_loja} || PDV: {total_pdvs_loja} ")
                     st.caption(
                         f"Atualizado em: {atu_conc}")
 
                 with col2:
                     st.caption("Central", help="Versão do Concentrador.")
-                    st.info(f"{con_ve}")
+                    if (f"{con_ve}") == " ":
+                        st.error(f"ERROR")
+                    elif (f"{con_ve}") < mlogic_ver_hom:
+                        st.warning(f' {con_ve} - 📛')
+                    else:
+                        st.success(f"{con_ve}")
                 with col3:
                     st.caption(
                         "JAVA", help="Versão do Java instalado no Concentrador.")
@@ -341,9 +346,9 @@ with st. container():
                 with col4:
                     st.caption(
                         "HDSCAN", help="Percentual de uso do HD do Concentrador")
-                    if hd_livre <= '40':
+                    if hd_livre <= f'60':
                         st.success(f"{hd_livre} %")
-                    elif hd_livre > '40' < '70':
+                    elif hd_livre <= f'80':
                         st.warning(f"{hd_livre} %")
                     else:
                         st.error(f"{hd_livre} %")
@@ -499,6 +504,10 @@ with st. container():
                                         'Scanntech', help="NFce emitida com API Scanntech ativada.")
                                     if (f"{dados_nfce_pdv_scanntech}") != '1':
                                         st.error(f"Desativada")
+                                    elif (f"{pdv_carg}") < data_hora_atual:
+                                        st.warning(f"DESLIGADO")
+                                    elif (f"{pdv_carg}") > data_hora_atual:
+                                        st.warning(f"DESLIGADO")
                                     else:
                                         st.success(f"Integrada")
 
@@ -509,15 +518,22 @@ with st. container():
                                         st.error(f"{pdv_carg}")
                                     elif (f"{pdv_carg}") < data_hora_atual:
                                         st.warning(f"DESLIGADO")
+                                    elif (f"{pdv_carg}") > data_hora_atual:
+                                        st.warning(f"DESLIGADO")
                                     else:
                                         st.success(f"{pdv_carg}")
                                 with col04:
                                     st.caption(
                                         'ID da Carga', help="ID da carga gerada e enviada aos PDV´s")
-                                    if (f"{id_pdv_carg}") != id_carga_conc:
+                                    if (f"{id_pdv_carg}") < id_carga_conc:
                                         st.error(f'{id_pdv_carg}')
                                         st.toast(
                                             f'{id_pdv},Trabalhando com Preços Antigos!', icon='😡')
+
+                                    elif (f"{pdv_carg}") < data_hora_atual:
+                                        st.warning(f"DESLIGADO")
+                                    elif (f"{pdv_carg}") > data_hora_atual:
+                                        st.warning(f"DESLIGADO")
                                     else:
                                         st.success(f"{id_pdv_carg}")
 
@@ -526,8 +542,10 @@ with st. container():
                                         'VERSÃO', help="Versão do PDV")
                                     if (f"{ve_pdv}") == " ":
                                         st.error(f"ERROR")
+                                    elif (f"{ve_pdv}") == '102324':
+                                        st.warning(f"DESLIGADO")
                                     elif (f"{ve_pdv}") < con_ve:
-                                        st.warning(f'Atualize')
+                                        st.warning(f' {ve_pdv}')
 
                                     else:
                                         st.success(f"{ve_pdv}")
@@ -536,6 +554,8 @@ with st. container():
                                     st.caption(
                                         'Ult. Venda', help="Data da ultima emissão de NFCe")
                                     if (f"{dados_nfce_pdv_data_fech}") < data_hora_atual:
+                                        st.error(f"DESLIGADO")
+                                    elif (f"{dados_nfce_pdv_data_fech}") > (f"{pdv_carg}"):
                                         st.error(f"OCIOSO")
                                         st.toast(
                                             f'{id_pdv}, OCIOSO!', icon='😡')
@@ -546,15 +566,22 @@ with st. container():
                                 with col07:
                                     st.caption(
                                         'Ult. NFCe', help="Numero da ultima NFCe emitida no PDV")
-                                    st.info(
-                                        f"{dados_nfce_pdv_numero}")
+                                    if (f"{pdv_carg}") < data_hora_atual:
+                                        st.warning(f"DESLIGADO")
+                                    elif (f"{pdv_carg}") > data_hora_atual:
+                                        st.warning(f"DESLIGADO")
+                                    else:
+                                        st.info(
+                                            f"{dados_nfce_pdv_numero}")
                                 with col08:
                                     st.caption(
                                         'SEFAZ', help="Resposta da SEFAZ para a autorização da NFCe. Se a rejeição apresentar numero diferente de 100, acesse o TOOLKIT para verificação.")
                                     if (f"{pdv_rej}") == '100':
                                         st.success(f"{pdv_rej}")
+                                    elif (f"{pdv_rej}") == '539':
+                                        st.error(f"ERROR {pdv_rej}")
                                     elif (f"{pdv_rej}") != '100':
-                                        st.warning(f"Verifique {pdv_rej}")
+                                        st.warning(f"{pdv_rej}")
                                     else:
                                         st.error(f"Sem Emissão")
                                 with col09:
