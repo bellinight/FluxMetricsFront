@@ -46,17 +46,25 @@ mydb = ce(
 ##################### Query Principal Central ##############################
 conc_query = "SELECT * FROM recebe_dados_conc"
 ####################################################################
+st.sidebar.title('Flux Metrics Solutions')
+st.sidebar.caption('Metrics For You')
+
+
+def clear_resource():
+    st.cache_data.clear()
+
 
 with st.sidebar.status('Concentrador', expanded=True, state="complete") as statusconc:
-    @st.cache_resource(ttl=600)  # 👈 Add the caching decorator
+
+    @st.cache_data(ttl=600)  # 👈 Add the caching decorator
     def load_data_conc():
+
         result_conc = pd.read_sql(conc_query, mydb)
         return result_conc
 
     result_conc = load_data_conc()
     statusconc.update(label="Concentrador!",
                       state="complete", expanded=False)
-
 
 ############################ Monta Dados Solicitados na Query Principal ########################################
 # result_conc = conn.query('SELECT * FROM recebe_dados_conc;', ttl=600)
@@ -88,8 +96,10 @@ sum_clientes = len(conta_clientes)
 pdv_query = (f"SELECT * FROM recebe_dados_pdv")
 
 with st.sidebar.status('PDV', expanded=True, state="running") as statuspdv:
-    @st.cache_resource(ttl=600)  # 👈 Add the caching decorator
+
+    @st.cache_data(ttl=600)  # 👈 Add the caching decorator
     def load_data_pdv():
+        # st.cache_data.clear()
         result_pdv = pd.read_sql(pdv_query, mydb)
         return result_pdv
 
@@ -105,8 +115,9 @@ result_pdv = result_pdv.drop_duplicates(
 result_pdv_filter = pd.unique(result_pdv['loj'])
 pdvs = result_pdv[['rede_lojas', 'pdv', 'loj', 'cli']]
 sum_pdvs = len(pdvs)
-###############################################################
-# st.table(result_pdv_erros)
+######################### Botão para atualizar o Banco de Dados ######################################
+st.sidebar.button("Buscar dados", on_click=clear_resource,
+                  key='btndadosupdate')
 
 
 #######################################################
@@ -259,7 +270,7 @@ with st.container():
 
 with st.sidebar:
     selecao_rede_me = st.selectbox(
-        'Rede', conc_rede_lojas, index=None, placeholder="Escolha o Cliente")
+        'Cliente', conc_rede_lojas, index=None, placeholder="Escolha o Cliente", help="Selecione a rede para apresentação das lojas.")
 
     conc_dados_completos = result_conc_ori[result_conc_ori['rede_lojas']
                                            == f"{selecao_rede_me}"]
@@ -280,7 +291,7 @@ with st. container():
 
         nome_loja_checkbox = grupoconc['razsoc'].to_list()[0]
         checkbox_selecao_loja = st.sidebar.checkbox(
-            f'{nome_loja_checkbox} ', value=False, key=conc_cliente+cli)
+            f'{nome_loja_checkbox} ', value=False, key=conc_cliente+cli, help="Click para apresentar a loja.")
         if checkbox_selecao_loja is True:
             if selecao_rede_me is not None:
                 lista_dados_conc = conc_dados_completos[conc_dados_completos['cli']
