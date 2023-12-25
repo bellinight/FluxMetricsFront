@@ -6,7 +6,7 @@ from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
 ############################ -----Configurações de Layout da HOME -----######################
 st.set_page_config(page_title="Front FLUX", page_icon=":chart",
-                   layout="wide", initial_sidebar_state="auto", menu_items=None)
+                   layout="wide", initial_sidebar_state="collapsed", menu_items=None)
 
 
 ########################## Funções Distintas ###############################################
@@ -46,8 +46,18 @@ mydb = ce(
 ##################### Query Principal Central ##############################
 conc_query = "SELECT * FROM recebe_dados_conc"
 ####################################################################
-st.sidebar.title('Flux Metrics Solutions')
-st.sidebar.caption('Metrics For You')
+with st.sidebar:
+    col1, col2, col3 = st.columns([1, 6, 1])
+    with col1:
+        st.write("")
+    with col2:
+        # st.markdown("<h1 style='text-align: center; '>FRONT FLUX</h1>", unsafe_allow_html=True)
+        st.image('top-logo_fluxfront.png', width=100)
+        # st.markdown("<h3 style='text-align: center; '>Gerencie seu Frente de Loja</h3>",unsafe_allow_html=True)
+    with col3:
+        st.write("")
+
+    st.divider()
 
 
 def clear_resource():
@@ -119,12 +129,107 @@ sum_pdvs = len(pdvs)
 st.sidebar.button("Buscar dados", on_click=clear_resource,
                   key='btndadosupdate')
 
+########################### SIDEBAR DE OPÇÕES ##############################
 
+with st.sidebar:
+    selecao_rede_me = st.selectbox(
+        'Cliente', conc_rede_lojas, index=None, placeholder="Escolha o Cliente", help="Selecione a rede para apresentação das lojas.")
+
+    conc_dados_completos = result_conc_ori[result_conc_ori['rede_lojas']
+                                           == f"{selecao_rede_me}"]
+    # selecao_loja_me = st.checkbox('Lojas: ', conc_dados_completos['loj'], index=0, placeholder="Choose an option")
 #######################################################
-st.markdown("<h2 style='text-align: center; '>FRONTFLUX</h2>",
-            unsafe_allow_html=True)
-st.markdown("<h6 style='text-align: center; '>Gerencie seu Frente de Loja</h6>",
-            unsafe_allow_html=True)
+
+
+with st.container():
+    col1, col2, col3 = st.columns([6, 2, 6])
+
+    with col3:
+        notifica_atualizaveis_conc = result_conc_ori[result_conc_ori['con_ver']
+                                                     < mlogic_ver_hom]
+        notifica_atualizaveis_pend = notifica_atualizaveis_conc[[
+            'rede_lojas', 'razsoc']]
+        numero_lojas_atualizaveis = len(notifica_atualizaveis_pend)
+
+        notifica_atualizadas_conc = result_conc_ori[result_conc_ori['con_ver']
+                                                    == mlogic_ver_hom]
+        notifica_atualizadas_cent = notifica_atualizadas_conc[[
+            'rede_lojas', 'razsoc']]
+        numero_lojas_atualizadas = len(notifica_atualizadas_cent)
+
+        col01, col02, col03, col04 = st.columns(
+            [1, 1, 1, 1])
+        ########################################################################
+        with col01:
+            st.caption("ERROS NO SGBD")
+            notifica_erros_sgbd = result_conc_ori[result_conc_ori['ser_sgbd'] == 'Stopped']
+            notifica_erros_sgbd = notifica_erros_sgbd[[
+                'rede_lojas', 'razsoc', 'ser_sgbd']]
+            # notifica_erros_carga_rede_sgbd = notifica_erros_sgbd['rede_lojas'].to_list()[0]
+            for i1, grupo1 in notifica_erros_sgbd.groupby('razsoc'):
+                sgbd_erros_rede = i1
+                if not notifica_erros_sgbd.empty:
+                    st.error(
+                        f'{sgbd_erros_rede}', icon="🚨")
+                if notifica_erros_sgbd.empty:
+                    st.write("SEM ERROS PARA APRESENTAR")
+        ########################################################################
+        with col02:
+            st.caption("NFCE - TOOLKIT")
+            notifica_erros_tk = result_conc_ori[result_conc_ori['ser_tk_app'] == 'Stopped']
+            notifica_erros_tk = notifica_erros_tk[[
+                'rede_lojas', 'razsoc', 'ser_tk_app']]
+            # notifica_erros_carga_rede_tk = notifica_erros_tk['rede_lojas'].to_list()[0]
+            for i2, grupo2 in notifica_erros_tk.groupby('razsoc'):
+                tk_erros_rede = i2
+                if not notifica_erros_tk.empty:
+                    st.error(
+                        f"{tk_erros_rede}", icon="🚨")
+                    st.toast(f'TK OFFLINE - Verifique a lista')
+                if notifica_erros_tk.empty:
+                    st.write("SEM ERROS PARA APRESENTAR")
+        ########################################################################
+        with col03:
+            st.caption("CARGA ONLINE")
+            notifica_erros_carga = result_conc_ori[result_conc_ori['ser_carg_on'] == 'Stopped']
+            notifica_erros_carga = notifica_erros_carga[[
+                'rede_lojas', 'razsoc', 'ser_carg_on']]
+            # notifica_erros_carga_rede_carga = notifica_erros_carga['rede_lojas'].to_list()[0]
+            for i3, grupo3 in notifica_erros_carga.groupby('razsoc'):
+                carga_erros_rede = i3
+                if not notifica_erros_carga.empty:
+                    st.error(
+                        f"{carga_erros_rede}", icon="🚨")
+                else:
+                    st.write("SEM ERROS PARA APRESENTAR")
+        ########################################################################
+        with col04:
+            st.caption("DATABRIDGE")
+            notifica_erros_bridge = result_conc_ori[result_conc_ori['ser_dbridge'] == 'Stopped']
+            notifica_erros_bridge = notifica_erros_bridge[[
+                'rede_lojas', 'razsoc', 'ser_dbridge']]
+            # notifica_erros_carga_rede_bridge = notifica_erros_bridge['rede_lojas'].to_list()[0]
+            for i4, grupo4 in notifica_erros_bridge.groupby('razsoc'):
+                bridge_erros_rede = i4
+
+                if not notifica_erros_bridge.empty:
+                    st.error(
+                        f"{bridge_erros_rede}", icon="🚨")
+                else:
+                    st.write("SEM ERROS PARA APRESENTAR")
+
+    with col2:
+        st.image('flux_metrics_logo_M.png', width=300)
+        st.write()
+    with col1:
+        col1, col2, col3 = st.columns([2, 2, 1])
+        with col1:
+            st.caption(f"ÚLTIMOS DADOS: {controlid_rede} - {controlid_razao}")
+        with col2:
+            st.info(f":closed_book: Versão Homologada - {mlogic_ver_hom}")
+        with col3:
+            st.write()
+    st.divider()
 
 ########################################################################
 with st.container():
@@ -140,96 +245,31 @@ with st.container():
     with col5:
         st.write()
     with col6:
-        st.caption(f"ÚLTIMOS DADOS: {controlid_rede} - {controlid_razao}")
-        st.info(f":closed_book: Versão Homologada - {mlogic_ver_hom}")
+        st.write()
 
     # st.markdown("<h4 style='text-align: center; '>Layout de Erros</h4>", unsafe_allow_html=True)
 
 ########################### NOTIFICAÇÕES ###################################
 with st.container():
-    notifica_atualizaveis_conc = result_conc_ori[result_conc_ori['con_ver']
-                                                 < mlogic_ver_hom]
-    notifica_atualizaveis_pend = notifica_atualizaveis_conc[[
-        'rede_lojas', 'razsoc']]
-    numero_lojas_atualizaveis = len(notifica_atualizaveis_pend)
-
-    notifica_atualizadas_conc = result_conc_ori[result_conc_ori['con_ver']
-                                                == mlogic_ver_hom]
-    notifica_atualizadas_cent = notifica_atualizadas_conc[[
-        'rede_lojas', 'razsoc']]
-    numero_lojas_atualizadas = len(notifica_atualizadas_cent)
-
     col01, col02, col03, col04, col05, col06, col07 = st.columns(
-        [1, 1, 1, 1, 2, 1, 1])
-    ########################################################################
+        [1, 1, 1, 1, 1, 2, 2])
+    # st.write(grupo4)
     with col01:
-        st.caption("ERROS NO SGBD")
-        notifica_erros_sgbd = result_conc_ori[result_conc_ori['ser_sgbd'] == 'Stopped']
-        notifica_erros_sgbd = notifica_erros_sgbd[[
-            'rede_lojas', 'razsoc', 'ser_sgbd']]
-        # notifica_erros_carga_rede_sgbd = notifica_erros_sgbd['rede_lojas'].to_list()[0]
-        for i1, grupo1 in notifica_erros_sgbd.groupby('razsoc'):
-            sgbd_erros_rede = i1
-            if not notifica_erros_sgbd.empty:
-                st.error(
-                    f'{sgbd_erros_rede}', icon="🚨")
-            if notifica_erros_sgbd.empty:
-                st.write("SEM ERROS PARA APRESENTAR")
-    ########################################################################
+        st.metric("Clientes", f"{sum_clientes}", f'Meta 100')
+        st.write("")
     with col02:
-        st.caption("NFCE - TOOLKIT")
-        notifica_erros_tk = result_conc_ori[result_conc_ori['ser_tk_app'] == 'Stopped']
-        notifica_erros_tk = notifica_erros_tk[[
-            'rede_lojas', 'razsoc', 'ser_tk_app']]
-        # notifica_erros_carga_rede_tk = notifica_erros_tk['rede_lojas'].to_list()[0]
-        for i2, grupo2 in notifica_erros_tk.groupby('razsoc'):
-            tk_erros_rede = i2
-            if not notifica_erros_tk.empty:
-                st.error(
-                    f"{tk_erros_rede}", icon="🚨")
-                st.toast(f'TK OFFLINE - Verifique a lista')
-            if notifica_erros_tk.empty:
-                st.write("SEM ERROS PARA APRESENTAR")
-    ########################################################################
+        st.metric("Lojas Atendidas", f"{sum_lojas}", f"Meta 50")
+        st.write("")
     with col03:
-        st.caption("CARGA ONLINE")
-        notifica_erros_carga = result_conc_ori[result_conc_ori['ser_carg_on'] == 'Stopped']
-        notifica_erros_carga = notifica_erros_carga[[
-            'rede_lojas', 'razsoc', 'ser_carg_on']]
-        # notifica_erros_carga_rede_carga = notifica_erros_carga['rede_lojas'].to_list()[0]
-        for i3, grupo3 in notifica_erros_carga.groupby('razsoc'):
-            carga_erros_rede = i3
-            if not notifica_erros_carga.empty:
-                st.error(
-                    f"{carga_erros_rede}", icon="🚨")
-            else:
-                st.write("SEM ERROS PARA APRESENTAR")
-    ########################################################################
+        st.metric(f"Lojas Atualizadas - {mlogic_ver_hom}", f"{numero_lojas_atualizadas}",
+                  f"Defict {numero_lojas_atualizaveis}")
+        st.write("")
     with col04:
-        st.caption("DATABRIDGE")
-        notifica_erros_bridge = result_conc_ori[result_conc_ori['ser_dbridge'] == 'Stopped']
-        notifica_erros_bridge = notifica_erros_bridge[[
-            'rede_lojas', 'razsoc', 'ser_dbridge']]
-        # notifica_erros_carga_rede_bridge = notifica_erros_bridge['rede_lojas'].to_list()[0]
-        for i4, grupo4 in notifica_erros_bridge.groupby('razsoc'):
-            bridge_erros_rede = i4
-
-            if not notifica_erros_bridge.empty:
-                st.error(
-                    f"{bridge_erros_rede}", icon="🚨")
-            else:
-                st.write("SEM ERROS PARA APRESENTAR")
-
-            # st.write(grupo4)
+        st.metric("PDV´s Gerenciados", f"{sum_pdvs}", f"Meta 1000")
+        st.write("")
     with col05:
-        col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 1])
-        col1.metric(f"{mlogic_ver_hom}", f"{numero_lojas_atualizadas}",
-                    f"Defict {numero_lojas_atualizaveis}")
-        col2.metric("Clientes", f"{sum_lojas}", f"Meta 50")
-        col3.metric("PDVS", f"{sum_pdvs}", f"Meta 1000")
-        col4.metric("Redes", f"{sum_clientes}", f'Meta 100')
-        col5.metric(
-            "Check", f"{numero_lojas_atualizaveis}")
+        st.write("")
+
     ########################################################################
     with col06:
         with st.expander("Centrais Desatualizadas"):
@@ -246,7 +286,7 @@ with st.container():
                 else:
                     st.write("SEM ERROS PARA APRESENTAR")
 
-            # st.write(grupo5)
+            st.write(i5)
     ########################################################################
 
     with col07:
@@ -266,17 +306,6 @@ with st.container():
             # st.write(grupo6)
 
 
-########################### SIDEBAR DE OPÇÕES ##############################
-
-with st.sidebar:
-    selecao_rede_me = st.selectbox(
-        'Cliente', conc_rede_lojas, index=None, placeholder="Escolha o Cliente", help="Selecione a rede para apresentação das lojas.")
-
-    conc_dados_completos = result_conc_ori[result_conc_ori['rede_lojas']
-                                           == f"{selecao_rede_me}"]
-    # selecao_loja_me = st.checkbox('Lojas: ', conc_dados_completos['loj'], index=0, placeholder="Choose an option")
-
-
 ########################### Verificação de Notas Integradas ##############################
 
 
@@ -290,6 +319,7 @@ with st. container():
         # st.table(grupoconc)
 
         nome_loja_checkbox = grupoconc['razsoc'].to_list()[0]
+
         checkbox_selecao_loja = st.sidebar.checkbox(
             f'{nome_loja_checkbox} ', value=False, key=conc_cliente+cli, help="Click para apresentar a loja.")
         if checkbox_selecao_loja is True:
