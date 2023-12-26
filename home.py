@@ -6,7 +6,7 @@ from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
 ############################ -----Configurações de Layout da HOME -----######################
 st.set_page_config(page_title="Front FLUX", page_icon=":chart",
-                   layout="wide", initial_sidebar_state="collapsed", menu_items=None)
+                   layout="wide", initial_sidebar_state="auto", menu_items=None)
 
 
 ########################## Funções Distintas ###############################################
@@ -31,6 +31,10 @@ def anin_atualizando():
         st.success('Pronto!')
 
 
+def clear_resource():
+    st.cache_data.clear()
+
+
 ############################# -----Conexão para extração de dados-----################################
 # Conectar ao banco de dados
 username_bd = st.secrets['username']
@@ -45,36 +49,33 @@ mydb = ce(
 
 ##################### Query Principal Central ##############################
 conc_query = "SELECT * FROM recebe_dados_conc"
+pdv_query = (f"SELECT * FROM recebe_dados_pdv")
 ####################################################################
 with st.sidebar:
-    col1, col2, col3 = st.columns([1, 6, 1])
-    with col1:
-        st.write("")
-    with col2:
-        # st.markdown("<h1 style='text-align: center; '>FRONT FLUX</h1>", unsafe_allow_html=True)
-        st.image('top-logo_fluxfront.png', width=100)
-        # st.markdown("<h3 style='text-align: center; '>Gerencie seu Frente de Loja</h3>",unsafe_allow_html=True)
-    with col3:
-        st.write("")
-
-    st.divider()
-
-
-def clear_resource():
-    st.cache_data.clear()
-
-
-with st.sidebar.status('Concentrador', expanded=True, state="complete") as statusconc:
+    st.subheader("Serviço de Dados")
 
     @st.cache_data(ttl=600)  # 👈 Add the caching decorator
     def load_data_conc():
 
         result_conc = pd.read_sql(conc_query, mydb)
+
         return result_conc
 
     result_conc = load_data_conc()
-    statusconc.update(label="Concentrador!",
-                      state="complete", expanded=False)
+    # st.divider()
+
+    @st.cache_data(ttl=600)  # 👈 Add the caching decorator
+    def load_data_pdv():
+
+        result_pdv = pd.read_sql(pdv_query, mydb)
+
+        return result_pdv
+
+    result_pdv = load_data_pdv()
+
+    st.button("Buscar dados", on_click=clear_resource,
+              key='btndadosupdate')
+
 
 ############################ Monta Dados Solicitados na Query Principal ########################################
 # result_conc = conn.query('SELECT * FROM recebe_dados_conc;', ttl=600)
@@ -103,19 +104,7 @@ sum_clientes = len(conta_clientes)
 
 
 ############################# ----- Conexão com PDV´s ----- #############################
-pdv_query = (f"SELECT * FROM recebe_dados_pdv")
 
-with st.sidebar.status('PDV', expanded=True, state="running") as statuspdv:
-
-    @st.cache_data(ttl=600)  # 👈 Add the caching decorator
-    def load_data_pdv():
-        # st.cache_data.clear()
-        result_pdv = pd.read_sql(pdv_query, mydb)
-        return result_pdv
-
-    result_pdv = load_data_pdv()
-    statuspdv.update(label="PDV",
-                     state="complete", expanded=False)
 
 result_pdv = result_pdv.sort_values(by='ID', ascending=False)
 result_pdv = result_pdv.drop_duplicates(
@@ -126,14 +115,13 @@ result_pdv_filter = pd.unique(result_pdv['loj'])
 pdvs = result_pdv[['rede_lojas', 'pdv', 'loj', 'cli']]
 sum_pdvs = len(pdvs)
 ######################### Botão para atualizar o Banco de Dados ######################################
-st.sidebar.button("Buscar dados", on_click=clear_resource,
-                  key='btndadosupdate')
+
 
 ########################### SIDEBAR DE OPÇÕES ##############################
 
 with st.sidebar:
     selecao_rede_me = st.selectbox(
-        'Cliente', conc_rede_lojas, index=None, placeholder="Escolha o Cliente", help="Selecione a rede para apresentação das lojas.")
+        'Selecione o Cliente na Lista', conc_rede_lojas, index=None, placeholder="Digite ou Click", help="Selecione a rede para apresentação das lojas.")
 
     conc_dados_completos = result_conc_ori[result_conc_ori['rede_lojas']
                                            == f"{selecao_rede_me}"]
@@ -142,7 +130,7 @@ with st.sidebar:
 
 
 with st.container():
-    col1, col2, col3 = st.columns([6, 2, 6])
+    col1, col2, col3 = st.columns([4, 1, 8])
 
     with col3:
         notifica_atualizaveis_conc = result_conc_ori[result_conc_ori['con_ver']
@@ -218,81 +206,47 @@ with st.container():
                 else:
                     st.write("SEM ERROS PARA APRESENTAR")
 
-    with col2:
-        st.image('flux_metrics_logo_M.png', width=300)
-        st.write()
     with col1:
-        col1, col2, col3 = st.columns([2, 2, 1])
+
+        col1, col2 = st.columns([3, 2])
         with col1:
-            st.caption(f"ÚLTIMOS DADOS: {controlid_rede} - {controlid_razao}")
+            st.caption(
+                f"Last Data: \n {controlid_rede} - {controlid_razao}")
+            st.write('')
         with col2:
-            st.info(f":closed_book: Versão Homologada - {mlogic_ver_hom}")
-        with col3:
-            st.write()
-    st.divider()
+            st.info(f":closed_book: Versão - {mlogic_ver_hom}")
+            st.write('')
 
-########################################################################
-with st.container():
-    col1, col2, col3, col4, col5, col6 = st.columns([1, 1, 1, 1, 1, 2])
-    with col1:
-        st.write()
     with col2:
-        st.write()
-    with col3:
-        st.write()
-    with col4:
-        st.write()
-    with col5:
-        st.write()
-    with col6:
-        st.write()
+        st.write("   ")
 
-    # st.markdown("<h4 style='text-align: center; '>Layout de Erros</h4>", unsafe_allow_html=True)
 
 ########################### NOTIFICAÇÕES ###################################
-with st.container():
-    col01, col02, col03, col04, col05, col06, col07 = st.columns(
-        [1, 1, 1, 1, 1, 2, 2])
-    # st.write(grupo4)
-    with col01:
-        st.metric("Clientes", f"{sum_clientes}", f'Meta 100')
-        st.write("")
-    with col02:
-        st.metric("Lojas Atendidas", f"{sum_lojas}", f"Meta 50")
-        st.write("")
-    with col03:
-        st.metric(f"Lojas Atualizadas - {mlogic_ver_hom}", f"{numero_lojas_atualizadas}",
-                  f"Defict {numero_lojas_atualizaveis}")
-        st.write("")
-    with col04:
-        st.metric("PDV´s Gerenciados", f"{sum_pdvs}", f"Meta 1000")
-        st.write("")
-    with col05:
-        st.write("")
+with st.sidebar.container():
+    st.divider()
+    st.write()
+    tab1, tab2, tab3 = st.tabs(
+        ["Dados Gerenciais", "Centrais Atualizadas", "Centrais Desatualizadas"])
+    with tab1:
+        col01, col02, col03, col04 = st.columns(4)
+        # st.write(grupo4)
+        with col01:
+            st.metric("Clientes", f"{sum_clientes}", f'Meta 100')
+            st.write("")
+        with col02:
+            st.metric("Lojas Atendidas", f"{sum_lojas}", f"Meta 50")
+            st.write("")
+        with col03:
+            st.metric(f"Lojas Atualizadas - {mlogic_ver_hom}", f"{numero_lojas_atualizadas}",
+                      f"Defict {numero_lojas_atualizaveis}")
+            st.write("")
+        with col04:
+            st.metric("PDV´s Gerenciados", f"{sum_pdvs}", f"Meta 1000")
+            st.write("")
 
-    ########################################################################
-    with col06:
-        with st.expander("Centrais Desatualizadas"):
-
-            st.write(numero_lojas_atualizaveis)
-            # notifica_erros_carga_rede_bridge = notifica_erros_bridge['rede_lojas'].to_list()[0]
-            for i5, grupo5 in notifica_atualizaveis_pend.groupby('razsoc'):
-                atualizaveis_cent_rede = i5
-                atualizaveis_cent_rede_nome = grupo5['rede_lojas'].to_list()[0]
-
-                if not notifica_atualizaveis_pend.empty:
-                    st.error(
-                        f"||{atualizaveis_cent_rede_nome}|| - {atualizaveis_cent_rede}")
-                else:
-                    st.write("SEM ERROS PARA APRESENTAR")
-
-            st.write(i5)
-    ########################################################################
-
-    with col07:
-        with st.expander("Centrais Atualizadas"):
-
-            st.write(numero_lojas_atualizadas)
+    with tab2:
+        with st.expander(f"Centrais Atualizadas - {numero_lojas_atualizadas}"):
+            st.write()
             for i6, grupo6 in notifica_atualizadas_cent.groupby('razsoc'):
                 atualizadas_cent_rede = i6
                 atualizadas_cent_rede_nome = grupo6['rede_lojas'].to_list()[0]
@@ -304,7 +258,21 @@ with st.container():
                     st.write("SEM ERROS PARA APRESENTAR")
 
             # st.write(grupo6)
+    with tab3:
+        with st.expander(f"Centrais Desatualizadas - {numero_lojas_atualizaveis}"):
+            st.write()
+            # notifica_erros_carga_rede_bridge = notifica_erros_bridge['rede_lojas'].to_list()[0]
+            for i5, grupo5 in notifica_atualizaveis_pend.groupby('razsoc'):
+                atualizaveis_cent_rede = i5
+                atualizaveis_cent_rede_nome = grupo5['rede_lojas'].to_list()[0]
 
+                if not notifica_atualizaveis_pend.empty:
+                    st.error(
+                        f"||{atualizaveis_cent_rede_nome}|| - {atualizaveis_cent_rede}")
+                else:
+                    st.write("SEM ERROS PARA APRESENTAR")
+
+            # st.write(i5)
 
 ########################### Verificação de Notas Integradas ##############################
 
@@ -320,8 +288,8 @@ with st. container():
 
         nome_loja_checkbox = grupoconc['razsoc'].to_list()[0]
 
-        checkbox_selecao_loja = st.sidebar.checkbox(
-            f'{nome_loja_checkbox} ', value=False, key=conc_cliente+cli, help="Click para apresentar a loja.")
+        checkbox_selecao_loja = st.checkbox(
+            f'{nome_loja_checkbox} ', value=True, key=conc_cliente+cli, help="Click para apresentar a loja.")
         if checkbox_selecao_loja is True:
             if selecao_rede_me is not None:
                 lista_dados_conc = conc_dados_completos[conc_dados_completos['cli']
@@ -546,7 +514,7 @@ with st. container():
                                     if (f"{dados_nfce_pdv_scanntech}") != '1':
                                         st.error(f"Desativada")
                                     elif (f"{pdv_carg}") < data_hora_atual:
-                                        st.warning(f"DESLIGADO")
+                                        st.warning(f"")
                                     elif (f"{pdv_carg}") > data_hora_atual:
                                         st.warning(f"DESLIGADO")
                                     else:
@@ -556,7 +524,7 @@ with st. container():
                                     st.caption(
                                         'Data da Ultima Carga', help="Data de registro da ultima carga enviada para os PDV´s")
                                     if (f"{pdv_carg}") < data_carga_conc:
-                                        st.error(f"{pdv_carg}")
+                                        st.error(f"")
                                     elif (f"{pdv_carg}") < data_hora_atual:
                                         st.warning(f"DESLIGADO")
                                     elif (f"{pdv_carg}") > data_hora_atual:
@@ -567,12 +535,12 @@ with st. container():
                                     st.caption(
                                         'ID da Carga', help="ID da carga gerada e enviada aos PDV´s")
                                     if (f"{id_pdv_carg}") < id_carga_conc:
-                                        st.error(f'{id_pdv_carg}')
+                                        st.error(f'')
                                         st.toast(
                                             f'{id_pdv},Trabalhando com Preços Antigos!', icon='😡')
 
                                     elif (f"{pdv_carg}") < data_hora_atual:
-                                        st.warning(f"DESLIGADO")
+                                        st.warning(f"")
                                     elif (f"{pdv_carg}") > data_hora_atual:
                                         st.warning(f"DESLIGADO")
                                     else:
@@ -595,7 +563,7 @@ with st. container():
                                     st.caption(
                                         'Ult. Venda', help="Data da ultima emissão de NFCe")
                                     if (f"{dados_nfce_pdv_data_fech}") < data_hora_atual:
-                                        st.error(f"DESLIGADO")
+                                        st.error(f"")
                                     elif (f"{dados_nfce_pdv_data_fech}") > (f"{pdv_carg}"):
                                         st.error(f"OCIOSO")
                                         st.toast(
@@ -608,9 +576,7 @@ with st. container():
                                     st.caption(
                                         'Ult. NFCe', help="Numero da ultima NFCe emitida no PDV")
                                     if (f"{pdv_carg}") < data_hora_atual:
-                                        st.warning(f"DESLIGADO")
-                                    elif (f"{pdv_carg}") > data_hora_atual:
-                                        st.warning(f"DESLIGADO")
+                                        st.warning(f"")
                                     else:
                                         st.info(
                                             f"{dados_nfce_pdv_numero}")
@@ -701,5 +667,18 @@ st_autorefresh(interval=60000, limit=100, key="fizzbuzzcounter")
 # st.rerun()
 # st.stop()
 
+with st.sidebar.container():
+    st.divider()
+    st.write()
+    col1, col2, col3 = st.columns([1, 6, 1])
+    with col1:
+        st.write()
+    with col2:
+        # st.markdown("<h1 style='text-align: center; '>FRONT FLUX</h1>", unsafe_allow_html=True)
+        st.image('flux_metrics_logo_M.png')
+        # st.markdown("<h3 style='text-align: center; '>Gerencie seu Frente de Loja</h3>",unsafe_allow_html=True)
+    with col3:
+        st.write()
+    st.divider()
 # st.write(st.session_state)
 # st.write('########################################################################')
