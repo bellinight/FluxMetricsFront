@@ -52,7 +52,8 @@ conc_query = "SELECT * FROM recebe_dados_conc"
 pdv_query = (f"SELECT * FROM recebe_dados_pdv")
 ####################################################################
 with st.sidebar:
-    st.subheader("Serviço de Dados")
+    st.subheader("Serviço de Dados",
+                 help="Atualiza o Front Flux com e apresenta os últimos dados enviados")
 
     @st.cache_data(ttl=600)  # 👈 Add the caching decorator
     def load_data_conc():
@@ -73,7 +74,7 @@ with st.sidebar:
 
     result_pdv = load_data_pdv()
 
-    st.button("Buscar dados", on_click=clear_resource,
+    st.button("Buscar dados", on_click=clear_resource, help="Click no botão para esvaziar o cache e atualizar os dados na dashboard.",
               key='btndadosupdate')
 
 
@@ -287,9 +288,11 @@ with st. container():
         # st.table(grupoconc)
 
         nome_loja_checkbox = grupoconc['razsoc'].to_list()[0]
-
+        pdv_last_nfce = result_pdv[result_pdv['cli'] == cli]
+        pdv_last_nfce = pdv_last_nfce['dados_nfce_pdv_data_fech'].to_list()[0]
+        # st.write(pdv_last_nfce)
         checkbox_selecao_loja = st.checkbox(
-            f'{nome_loja_checkbox} ', value=True, key=conc_cliente+cli, help="Click para apresentar a loja.")
+            f':convenience_store: {nome_loja_checkbox} - :hammer_and_wrench: {pdv_last_nfce} ', value=True, key=conc_cliente+cli, help=f" :convenience_store: Nome da Loja - :hammer_and_wrench: Data e hora dos dados armazenados.")
         if checkbox_selecao_loja is True:
             if selecao_rede_me is not None:
                 lista_dados_conc = conc_dados_completos[conc_dados_completos['cli']
@@ -297,6 +300,7 @@ with st. container():
                 lista_dados_conc['sem_data_carga'] = pd.to_datetime(
                     lista_dados_conc['sem_data_carga'])
                # st.table(lista_dados_conc)
+
                 ############ Monta Apresentação de dados do Concentrador ##########################
                 lojas_rede = lista_dados_conc['rede_lojas'].to_list()[0]
                 id_cli = lista_dados_conc['cli'].to_list()[0]
@@ -331,21 +335,18 @@ with st. container():
                 total_pdvs_loja = len(total_pdvs_loja)
                 ####### LAYOUT DE APRESENTAÇÃO DE DADOS DA CENTRAL ###########
                 col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12, col13, col14 = st.columns(
-                    [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2])
+                    14)
 
                 with col1:
-                    st.caption(
-                        f"{lojas_rede} || {flux_ve} || ")
-                    st.info(f"{raz_loja} || PDV: {total_pdvs_loja} ")
-                    st.caption(
-                        f"Atualizado em: {atu_conc}")
+                    st.caption(f"Cliente: {lojas_rede}")
+                    st.info(f"PDV: {total_pdvs_loja}")
 
                 with col2:
                     st.caption("Central", help="Versão do Concentrador.")
                     if (f"{con_ve}") == " ":
                         st.error(f"ERROR")
                     elif (f"{con_ve}") < mlogic_ver_hom:
-                        st.warning(f' {con_ve} - 📛')
+                        st.warning(f' {con_ve}')
                     else:
                         st.success(f"{con_ve}")
                 with col3:
@@ -354,7 +355,7 @@ with st. container():
                     st.info(f"{java_ve}")
                 with col4:
                     st.caption(
-                        "HDSCAN", help="Percentual de uso do HD do Concentrador")
+                        "HDSCAN", help="Percentual de uso do HD")
                     if hd_livre <= f'60':
                         st.success(f"{hd_livre} %")
                     elif hd_livre <= f'80':
@@ -368,12 +369,12 @@ with st. container():
 
                 with col6:
                     st.caption(
-                        "Ult. Carga", help="Data do envio da ultima carga do Director para o Concentrador.")
+                        "Ult. Carga", help="Data do envio da ultima carga.")
                     st.info(f"{data_carga_conc}")
 
                 with col7:
                     st.caption(
-                        "ID da carga", help="Identificação de controle da carga enviada do Director")
+                        "ID da carga", help="Identificação de controle da carga enviada.")
                     st.info(f"{id_carga_conc}")
 
                 with col8:
@@ -405,7 +406,7 @@ with st. container():
                         st.warning("Verificar")
                 with col11:
                     st.caption(
-                        "Bridge", help="Status do serviço de API Director <=> Concentrador")
+                        "Bridge", help="Status do serviço de API  <=> CENTRAL")
                     if 'Stopped' in lista_dados_conc['ser_dbridge'].to_list():
                         st.error("Bridge :rotating_light:")
                     elif 'Running' in lista_dados_conc['ser_dbridge'].to_list():
@@ -414,11 +415,11 @@ with st. container():
                         st.warning("Verificar")
                 with col12:
                     st.caption(
-                        "Integradas", help="Numero de notas integradas com o Director nos últimos 31 dias.")
+                        "Integradas", help="Numero de notas integradas, nos últimos 31 dias.")
                     st.info(f"{integracao_notas_mc}")
                 with col13:
                     st.caption(
-                        "Pendentes", help="Numero de notas pendentes de integração com o Director.")
+                        "Pendentes", help="Numero de notas pendentes de integração, nos últimos 31 dias.")
                     if integracao_notas_dr == "0":
                         st.success(f"{integracao_notas_dr}")
                     else:
@@ -427,8 +428,8 @@ with st. container():
                     st.caption(
                         "Ver PDVs", help="Click para ativar e visualizar a lista de PDV´s de sua loja.")
                     mostrar_pdvs = st.toggle(
-                        f'ON/OFF', key=id_cli+id_loja)
-                    st.divider()
+                        f':eye:', key=id_cli+id_loja)
+
                 with st.empty():
                     if mostrar_pdvs:
                         ########################################################################
@@ -437,7 +438,7 @@ with st. container():
                         with st.container():
                             # st.divider()
                             st.subheader(
-                                f':convenience_store: {raz_loja}', help="Nome da loja acessada para verificação.")
+                                f':card_file_box: PDV´s Analisados: {total_pdvs_loja}', help="Nome da loja acessada para verificação.")
                             st.caption(
                                 "Verifique abaixo os detalhes do frente de loja")
 
@@ -502,7 +503,7 @@ with st. container():
                                 ############ Monta layout para apresentação dos dados e erros ##########################
                                 # st.table(lista_dados_pdv)
                                 col01, col02, col03, col04, col05, col06, col07, col08, col09, col10 = st.columns(
-                                    [2, 2, 2, 2, 2, 2, 1, 1, 1, 2])
+                                    10)
 
                                 with col01:
                                     st.caption(
@@ -513,36 +514,29 @@ with st. container():
                                         'Scanntech', help="NFce emitida com API Scanntech ativada.")
                                     if (f"{dados_nfce_pdv_scanntech}") != '1':
                                         st.error(f"Desativada")
-                                    elif (f"{pdv_carg}") < data_hora_atual:
-                                        st.warning(f"")
-                                    elif (f"{pdv_carg}") > data_hora_atual:
-                                        st.warning(f"DESLIGADO")
+                                    elif (f"{ve_pdv}") == '102324':
+                                        st.warning(f"OFF")
                                     else:
-                                        st.success(f"Integrada")
+                                        st.success(f"Enviada")
 
                                 with col03:
                                     st.caption(
-                                        'Data da Ultima Carga', help="Data de registro da ultima carga enviada para os PDV´s")
-                                    if (f"{pdv_carg}") < data_carga_conc:
-                                        st.error(f"")
+                                        'Ult. Carga', help="Data de registro da ultima carga enviada para os PDV´s")
+                                    if (f"{ve_pdv}") == '102324':
+                                        st.warning(f"OFF")
                                     elif (f"{pdv_carg}") < data_hora_atual:
-                                        st.warning(f"DESLIGADO")
-                                    elif (f"{pdv_carg}") > data_hora_atual:
-                                        st.warning(f"DESLIGADO")
+                                        st.error(f"{pdv_carg}")
                                     else:
                                         st.success(f"{pdv_carg}")
                                 with col04:
                                     st.caption(
                                         'ID da Carga', help="ID da carga gerada e enviada aos PDV´s")
                                     if (f"{id_pdv_carg}") < id_carga_conc:
-                                        st.error(f'')
+                                        st.error(f'VERIFIQUE')
                                         st.toast(
                                             f'{id_pdv},Trabalhando com Preços Antigos!', icon='😡')
-
-                                    elif (f"{pdv_carg}") < data_hora_atual:
-                                        st.warning(f"")
-                                    elif (f"{pdv_carg}") > data_hora_atual:
-                                        st.warning(f"DESLIGADO")
+                                    elif (f"{ve_pdv}") == '102324':
+                                        st.warning(f"OFF")
                                     else:
                                         st.success(f"{id_pdv_carg}")
 
@@ -552,31 +546,33 @@ with st. container():
                                     if (f"{ve_pdv}") == " ":
                                         st.error(f"ERROR")
                                     elif (f"{ve_pdv}") == '102324':
-                                        st.warning(f"DESLIGADO")
+                                        st.warning(f"OFF")
                                     elif (f"{ve_pdv}") < con_ve:
                                         st.warning(f' {ve_pdv}')
-
                                     else:
                                         st.success(f"{ve_pdv}")
 
                                 with col06:
                                     st.caption(
                                         'Ult. Venda', help="Data da ultima emissão de NFCe")
-                                    if (f"{dados_nfce_pdv_data_fech}") < data_hora_atual:
-                                        st.error(f"")
-                                    elif (f"{dados_nfce_pdv_data_fech}") > (f"{pdv_carg}"):
-                                        st.error(f"OCIOSO")
+                                    if (f"{dados_nfce_pdv_data_fech}") < data_carga_conc:
+                                        st.error(
+                                            f"OCIOSO")
+                                    elif (f"{dados_nfce_pdv_data_fech}") < (f"{pdv_carg}"):
+                                        st.error(f"OFFLINE")
                                         st.toast(
-                                            f'{id_pdv}, OCIOSO!', icon='😡')
+                                            f'{id_pdv}, OFFLINE!', icon='😡')
+                                    elif (f"{ve_pdv}") == '102324':
+                                        st.warning(f"OFF")
                                     else:
                                         st.success(
-                                            f"{dados_nfce_pdv_data_fech}")
+                                            f"{dados_nfce_pdv_data_hora}")
 
                                 with col07:
                                     st.caption(
                                         'Ult. NFCe', help="Numero da ultima NFCe emitida no PDV")
-                                    if (f"{pdv_carg}") < data_hora_atual:
-                                        st.warning(f"")
+                                    if (f"{ve_pdv}") == '102324':
+                                        st.warning(f"OFF")
                                     else:
                                         st.info(
                                             f"{dados_nfce_pdv_numero}")
