@@ -4,6 +4,7 @@ import time
 from sqlalchemy import create_engine as ce
 from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
+from datetime import datetime, timedelta
 ############################ -----Configurações de Layout da HOME -----######################
 st.set_page_config(page_title="Front FLUX", page_icon=":chart",
                    layout="wide", initial_sidebar_state="auto", menu_items=None)
@@ -52,8 +53,15 @@ conc_query = "SELECT * FROM recebe_dados_conc"
 pdv_query = (f"SELECT * FROM recebe_dados_pdv")
 ####################################################################
 with st.sidebar:
-    st.subheader("Serviço de Dados",
-                 help="Atualiza o Front Flux com e apresenta os últimos dados enviados")
+    col1, col2, col3 = st.columns([1, 6, 1])
+    with col1:
+        st.write()
+    with col2:
+
+        st.subheader("FRONT FLUX",
+                     help="Atualiza o Front Flux com e apresenta os últimos dados enviados")
+    with col3:
+        st.write()
 
     @st.cache_data(ttl=600)  # 👈 Add the caching decorator
     def load_data_conc():
@@ -97,6 +105,7 @@ controlid_dados_completo = result_conc_ori.head(1)
 controlid_razao = controlid_dados_completo['razsoc'].to_list()[0]
 controlid_rede = controlid_dados_completo['rede_lojas'].to_list()[0]
 mlogic_ver_hom = '14.5.1'
+data_hora_atual_now = datetime.now()
 data_hora_atual = datetime.now().date()
 data_hora_atual = data_hora_atual.strftime('%d/%m/%y')
 sum_lojas = len(result_conc.loj)
@@ -121,12 +130,13 @@ sum_pdvs = len(pdvs)
 ########################### SIDEBAR DE OPÇÕES ##############################
 
 with st.sidebar:
+    # selecao_rede_me = 'nomedarede'
     selecao_rede_me = st.selectbox(
         'Selecione o Cliente na Lista', conc_rede_lojas, index=None, placeholder="Digite ou Click", help="Selecione a rede para apresentação das lojas.")
 
     conc_dados_completos = result_conc_ori[result_conc_ori['rede_lojas']
                                            == f"{selecao_rede_me}"]
-    # selecao_loja_me = st.checkbox('Lojas: ', conc_dados_completos['loj'], index=0, placeholder="Choose an option")
+    # selecao_loja_me = 'Eskynão'
 #######################################################
 
 
@@ -226,26 +236,26 @@ with st.container():
 with st.sidebar.container():
     st.divider()
     st.write()
-    tab1, tab2, tab3 = st.tabs(
-        ["Dados Gerenciais", "Centrais Atualizadas", "Centrais Desatualizadas"])
+    st.container()
+    col01, col02 = st.columns(2)
+    # st.write(grupo4)
+    with col01:
+        st.metric("Clientes", f"{sum_clientes}", f'Meta 100')
+        st.write("")
+    with col02:
+        st.metric("Lojas Atendidas", f"{sum_lojas}", f"Meta 50")
+        st.write("")
+    col03, col04 = st.columns(2)
+    with col03:
+        st.metric(f"Lojas Atualizadas - {mlogic_ver_hom}", f"{numero_lojas_atualizadas}",
+                  f"Defict {numero_lojas_atualizaveis}")
+        st.write("")
+    with col04:
+        st.metric("PDV´s Gerenciados", f"{sum_pdvs}", f"Meta 1000")
+        st.write("")
+    tab1, tab2 = st.tabs(
+        ["Centrais Atualizadas", "Centrais Desatualizadas"])
     with tab1:
-        col01, col02, col03, col04 = st.columns(4)
-        # st.write(grupo4)
-        with col01:
-            st.metric("Clientes", f"{sum_clientes}", f'Meta 100')
-            st.write("")
-        with col02:
-            st.metric("Lojas Atendidas", f"{sum_lojas}", f"Meta 50")
-            st.write("")
-        with col03:
-            st.metric(f"Lojas Atualizadas - {mlogic_ver_hom}", f"{numero_lojas_atualizadas}",
-                      f"Defict {numero_lojas_atualizaveis}")
-            st.write("")
-        with col04:
-            st.metric("PDV´s Gerenciados", f"{sum_pdvs}", f"Meta 1000")
-            st.write("")
-
-    with tab2:
         with st.expander(f"Centrais Atualizadas - {numero_lojas_atualizadas}"):
             st.write()
             for i6, grupo6 in notifica_atualizadas_cent.groupby('razsoc'):
@@ -259,7 +269,7 @@ with st.sidebar.container():
                     st.write("SEM ERROS PARA APRESENTAR")
 
             # st.write(grupo6)
-    with tab3:
+    with tab2:
         with st.expander(f"Centrais Desatualizadas - {numero_lojas_atualizaveis}"):
             st.write()
             # notifica_erros_carga_rede_bridge = notifica_erros_bridge['rede_lojas'].to_list()[0]
@@ -288,11 +298,9 @@ with st. container():
         # st.table(grupoconc)
 
         nome_loja_checkbox = grupoconc['razsoc'].to_list()[0]
-        pdv_last_nfce = result_pdv[result_pdv['cli'] == cli]
-        pdv_last_nfce = pdv_last_nfce['dados_nfce_pdv_data_fech'].to_list()[0]
-        # st.write(pdv_last_nfce)
+
         checkbox_selecao_loja = st.checkbox(
-            f':convenience_store: {nome_loja_checkbox} - :hammer_and_wrench: {pdv_last_nfce} ', value=True, key=conc_cliente+cli, help=f" :convenience_store: Nome da Loja - :hammer_and_wrench: Data e hora dos dados armazenados.")
+            f':convenience_store: {nome_loja_checkbox}', value=True, key=conc_cliente+cli, help=f" :convenience_store: Nome da Loja - :hammer_and_wrench: Data e hora dos dados armazenados.")
         if checkbox_selecao_loja is True:
             if selecao_rede_me is not None:
                 lista_dados_conc = conc_dados_completos[conc_dados_completos['cli']
@@ -333,6 +341,16 @@ with st. container():
                 total_pdvs_loja = result_pdv[result_pdv['cli'] == id_cli]
                 total_pdvs_loja = total_pdvs_loja['pdv']
                 total_pdvs_loja = len(total_pdvs_loja)
+
+                pdv_last_nfce_sort = result_pdv.sort_values(
+                    by='dados_nfce_pdv_data_fech', ascending=False)
+                pdv_last_nfce_sort = pdv_last_nfce_sort[
+                    pdv_last_nfce_sort['cli'] == id_cli]
+                pdv_last_nfce_sort['dados_nfce_pdv_data_fech'] = pd.to_datetime(
+                    pdv_last_nfce_sort['dados_nfce_pdv_data_fech'])
+                pdv_last_nfce = pdv_last_nfce_sort['dados_nfce_pdv_data_fech'].dt.strftime(
+                    '%d/%m/%y %H:%M:%S').to_list()[0]
+
                 ####### LAYOUT DE APRESENTAÇÃO DE DADOS DA CENTRAL ###########
                 col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12, col13, col14 = st.columns(
                     14)
@@ -430,6 +448,8 @@ with st. container():
                     mostrar_pdvs = st.toggle(
                         f':eye:', key=id_cli+id_loja)
 
+                st.caption(f":hammer_and_wrench: {pdv_last_nfce}")
+
                 with st.empty():
                     if mostrar_pdvs:
                         ########################################################################
@@ -450,6 +470,7 @@ with st. container():
                                 # info_pdv_dados = st.sidebar.checkbox(f"{pdv}", value=isall)
                                 # if info_pdv_dados:
                                 lista_dados_pdv = pdv_dados_completos[pdv_dados_completos['pdv'] == pdv]
+
                                 lista_dados_pdv['ult_ca'] = pd.to_datetime(
                                     lista_dados_pdv['ult_ca'])
                                 lista_dados_pdv['dados_nfce_pdv_data_fech'] = pd.to_datetime(
