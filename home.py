@@ -4,7 +4,7 @@ import time
 from sqlalchemy import create_engine as ce
 from streamlit_autorefresh import st_autorefresh
 from datetime import datetime
-from datetime import datetime, timedelta
+
 ############################ -----Configurações de Layout da HOME -----######################
 st.set_page_config(page_title="Front FLUX", page_icon=":chart",
                    layout="wide", initial_sidebar_state="auto", menu_items=None)
@@ -42,48 +42,53 @@ username_bd = st.secrets['username']
 pass_bd = st.secrets["password"]
 name_bd = st.secrets["database"]
 host_bd = st.secrets["host"]
-# st.write(st.secrets)
-
 mydb = ce(
     f'mysql+mysqlconnector://{username_bd}:{pass_bd}@{host_bd}/{name_bd}')
-# conn = st.connection('mysql', type='sql')
 
 ##################### Query Principal Central ##############################
 conc_query = "SELECT * FROM recebe_dados_conc"
 pdv_query = (f"SELECT * FROM recebe_dados_pdv")
-####################################################################
+############################## Sidebar de TItulo e LOGO da aplicação ######################################
 with st.sidebar:
+
     col1, col2, col3 = st.columns([1, 6, 1])
     with col1:
         st.write()
     with col2:
-
-        st.subheader("FRONT FLUX",
-                     help="Atualiza o Front Flux com e apresenta os últimos dados enviados")
+        # st.header('FRONT FLUX')
+        st.markdown(
+            "<h1 style='text-align: center; margin: 0 0 0 0;'>FRONT FLUX</h1>", unsafe_allow_html=True)
+        st.image("top-logo_M.png", width=None)
+        # st.markdown( "<h5 style='text-align: center; margin: 0 0 0 0;'>Gerencie seu Frente de Loja</h5>", unsafe_allow_html=True)
     with col3:
         st.write()
 
-    @st.cache_data(ttl=600)  # 👈 Add the caching decorator
-    def load_data_conc():
+    with st.expander('Atualizar DashBoard', expanded=False):
+        st.subheader("Carregar dados",
+                     help="Atualiza o Front Flux e apresenta os últimos dados enviados ao servidor")
+        st.button("Buscar dados", on_click=clear_resource, help="Click no botão para esvaziar o cache e atualizar os dados na dashboard.",
+                  key='btndadosupdate')
 
-        result_conc = pd.read_sql(conc_query, mydb)
+    ############################### Funções para Leitura e armazenamento de dados do Front Flux ###################################
 
-        return result_conc
+        @st.cache_data(ttl=600)  # 👈 Add the caching decorator
+        def load_data_conc():
 
-    result_conc = load_data_conc()
-    # st.divider()
+            result_conc = pd.read_sql(conc_query, mydb)
 
-    @st.cache_data(ttl=600)  # 👈 Add the caching decorator
-    def load_data_pdv():
+            return result_conc
 
-        result_pdv = pd.read_sql(pdv_query, mydb)
+        @st.cache_data(ttl=600)  # 👈 Add the caching decorator
+        def load_data_pdv():
 
-        return result_pdv
+            result_pdv = pd.read_sql(pdv_query, mydb)
 
-    result_pdv = load_data_pdv()
+            return result_pdv
 
-    st.button("Buscar dados", on_click=clear_resource, help="Click no botão para esvaziar o cache e atualizar os dados na dashboard.",
-              key='btndadosupdate')
+        with st.empty():
+            result_conc = load_data_conc()
+            result_pdv = load_data_pdv()
+            st.write()
 
 
 ############################ Monta Dados Solicitados na Query Principal ########################################
@@ -96,7 +101,7 @@ result_conc_ori = result_conc[['controlID', 'rede_lojas', 'cli', 'loj', 'razsoc'
                                'perc_hd', 'bkp_kb_con', 'sem_id_carga', 'sem_data_carga', 'ser_sgbd', 'ser_carg_on', 'ser_tk_app', 'ser_dbridge', 'pv_con', 'uv_con', 'integracao_notas_dr', 'integracao_notas_mc']]
 result_conc_filter = pd.unique(result_conc["cli"])
 
-################################ Variaveis do Concentrador #############################################
+################################ Variáveis da Central #############################################
 conc_rede_lojas = result_conc_ori['rede_lojas'].unique()
 conc_cliente = result_conc['cli']
 conc_loja = result_conc_ori['loj'].unique()
@@ -104,30 +109,46 @@ conc_razsoc = result_conc['razsoc']
 controlid_dados_completo = result_conc_ori.head(1)
 controlid_razao = controlid_dados_completo['razsoc'].to_list()[0]
 controlid_rede = controlid_dados_completo['rede_lojas'].to_list()[0]
-mlogic_ver_hom = '14.5.1'
+################################## Variável para busca de ultima versão da Central ######################
+mlogic_ver_hom = result_conc_ori.sort_values(by='con_ver', ascending=False)
+mlogic_ver_hom = mlogic_ver_hom['con_ver'].to_list()[0]
+################################## Variável para busca de data e hora local ######################
 data_hora_atual_now = datetime.now()
 data_hora_atual = datetime.now().date()
 data_hora_atual = data_hora_atual.strftime('%d/%m/%y')
+################################## Variáveis para contagem de clientes e lojas ######################
 sum_lojas = len(result_conc.loj)
 conta_clientes = result_conc['rede_lojas'].unique()
 sum_clientes = len(conta_clientes)
+########################### Variáveis de Notificação de Erros ###########################################
+notifica_atualizaveis_conc = result_conc_ori[result_conc_ori['con_ver']
+                                             < mlogic_ver_hom]
+notifica_atualizaveis_pend = notifica_atualizaveis_conc[[
+    'rede_lojas', 'razsoc']]
+numero_lojas_atualizaveis = len(notifica_atualizaveis_pend)
+
+notifica_atualizadas_conc = result_conc_ori[result_conc_ori['con_ver']
+                                            == mlogic_ver_hom]
+notifica_atualizadas_cent = notifica_atualizadas_conc[[
+    'rede_lojas', 'razsoc']]
+numero_lojas_atualizadas = len(notifica_atualizadas_cent)
+
+########################### Variáveis de Notificação de Erros Ponto de Venda ###########################################
 
 
-############################# ----- Conexão com PDV´s ----- #############################
-
+############################# ----- Conexão PDV´s ----- #############################
 
 result_pdv = result_pdv.sort_values(by='ID', ascending=False)
 result_pdv = result_pdv.drop_duplicates(
     subset=['cli', 'loj', 'pdv'])[['rede_lojas', 'cli', 'loj', 'pdv', 'pdv_at', 'pdv_ve', 'ult_ca', 'pdv_at_id', 'pdv_rej', 'dados_nfce_pdv_numero', 'dados_nfce_pdv_situacao', 'dados_nfce_pdv_valor', 'dados_nfce_pdv_usuario', 'dados_nfce_pdv_enviado', 'dados_nfce_pdv_data_fech', 'dados_nfce_pdv_scanntech', 'dados_nfce_pdv_email', 'dados_nfce_pdv_url_code', 'dados_nfce_pdv_nfemissao']]
 
-########################### Variáveis PDV #########################
+########################### Variáveis de Filtro para PDV #########################
 result_pdv_filter = pd.unique(result_pdv['loj'])
 pdvs = result_pdv[['rede_lojas', 'pdv', 'loj', 'cli']]
 sum_pdvs = len(pdvs)
-######################### Botão para atualizar o Banco de Dados ######################################
 
 
-########################### SIDEBAR DE OPÇÕES ##############################
+###########################  CAMPO NA SIDEBAR PARA SELEÇÃO DA REDE ##############################
 
 with st.sidebar:
     # selecao_rede_me = 'nomedarede'
@@ -136,26 +157,12 @@ with st.sidebar:
 
     conc_dados_completos = result_conc_ori[result_conc_ori['rede_lojas']
                                            == f"{selecao_rede_me}"]
-    # selecao_loja_me = 'Eskynão'
+
 #######################################################
 
-
 with st.container():
-    col1, col2, col3 = st.columns([4, 1, 8])
-
+    col1, col2, col3 = st.columns([4, 1, 6])
     with col3:
-        notifica_atualizaveis_conc = result_conc_ori[result_conc_ori['con_ver']
-                                                     < mlogic_ver_hom]
-        notifica_atualizaveis_pend = notifica_atualizaveis_conc[[
-            'rede_lojas', 'razsoc']]
-        numero_lojas_atualizaveis = len(notifica_atualizaveis_pend)
-
-        notifica_atualizadas_conc = result_conc_ori[result_conc_ori['con_ver']
-                                                    == mlogic_ver_hom]
-        notifica_atualizadas_cent = notifica_atualizadas_conc[[
-            'rede_lojas', 'razsoc']]
-        numero_lojas_atualizadas = len(notifica_atualizadas_cent)
-
         col01, col02, col03, col04 = st.columns(
             [1, 1, 1, 1])
         ########################################################################
@@ -218,24 +225,20 @@ with st.container():
                     st.write("SEM ERROS PARA APRESENTAR")
 
     with col1:
-
         col1, col2 = st.columns([3, 2])
         with col1:
-            st.caption(
-                f"Last Data: \n {controlid_rede} - {controlid_razao}")
-            st.write('')
+            st.write()
         with col2:
-            st.info(f":closed_book: Versão - {mlogic_ver_hom}")
-            st.write('')
+            st.write()
 
     with col2:
-        st.write("   ")
+        st.write()
 
 
 ########################### NOTIFICAÇÕES ###################################
 with st.sidebar.container():
+    st.caption(f"Last Data: \n {controlid_rede} - {controlid_razao}")
     st.divider()
-    st.write()
     st.container()
     col01, col02 = st.columns(2)
     # st.write(grupo4)
@@ -243,8 +246,9 @@ with st.sidebar.container():
         st.metric("Clientes", f"{sum_clientes}", f'Meta 100')
         st.write("")
     with col02:
-        st.metric("Lojas Atendidas", f"{sum_lojas}", f"Meta 50")
+        st.metric("Lojas Atendidas", f"{sum_lojas}", f"Meta 500")
         st.write("")
+
     col03, col04 = st.columns(2)
     with col03:
         st.metric(f"Lojas Atualizadas - {mlogic_ver_hom}", f"{numero_lojas_atualizadas}",
@@ -356,8 +360,9 @@ with st. container():
                     14)
 
                 with col1:
-                    st.caption(f"Cliente: {lojas_rede}")
-                    st.info(f"PDV: {total_pdvs_loja}")
+                    st.caption(
+                        f"PDV´s", help="Soma de todos os PDV´s existentes na loja")
+                    st.info(f"Total: {total_pdvs_loja}")
 
                 with col2:
                     st.caption("Central", help="Versão do Concentrador.")
@@ -449,6 +454,7 @@ with st. container():
                         f':eye:', key=id_cli+id_loja)
 
                 st.caption(f":hammer_and_wrench: {pdv_last_nfce}")
+                st.divider()
 
                 with st.empty():
                     if mostrar_pdvs:
@@ -693,6 +699,7 @@ with st.sidebar.container():
     with col2:
         # st.markdown("<h1 style='text-align: center; '>FRONT FLUX</h1>", unsafe_allow_html=True)
         st.image('flux_metrics_logo_M.png')
+        st.info(f":closed_book: Versão - {mlogic_ver_hom}")
         # st.markdown("<h3 style='text-align: center; '>Gerencie seu Frente de Loja</h3>",unsafe_allow_html=True)
     with col3:
         st.write()
