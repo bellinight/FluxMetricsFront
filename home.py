@@ -225,14 +225,41 @@ with st.container():
                     st.write("SEM ERROS PARA APRESENTAR")
 
     with col1:
-        col1, col2 = st.columns([3, 2])
+        col1, col2 = st.columns(2)
         with col1:
-            st.write()
-        with col2:
-            st.write()
+            total_alertas_scantec = result_pdv[result_pdv['dados_nfce_pdv_scanntech'] == '0']
+            total_alertas_scantec = len(total_alertas_scantec['rede_lojas'])
+            with st.expander(f"Alertas Scanntech - :name_badge: {total_alertas_scantec} PDV´s"):
+                pdv_scantec_offline = result_pdv[result_pdv['dados_nfce_pdv_scanntech'] == '0']
+                pdv_scantec_offline = pdv_scantec_offline[[
+                    'rede_lojas', 'pdv']]
 
+                for i7, grupo7 in pdv_scantec_offline.groupby('pdv') and pdv_scantec_offline.groupby('rede_lojas'):
+                    scantecerros_cli = i7
+                    if not pdv_scantec_offline.empty:
+                        st.error(
+                            f"{scantecerros_cli}", icon="🚨")
+                    else:
+                        st.write("SEM ERROS PARA APRESENTAR")
+
+        with col2:
+            total_alertas_nfce_pend = result_conc_ori[result_conc_ori['integracao_notas_dr'] > '0']
+            total_alertas_nfce_pend = len(
+                total_alertas_nfce_pend['rede_lojas'])
+            with st.expander(f"NFCe´s Pendentes - :name_badge: {total_alertas_nfce_pend} lojas"):
+                nfce_pend_int = result_conc_ori[result_conc_ori['integracao_notas_dr'] > '0']
+                nfce_pend_int = nfce_pend_int[[
+                    'rede_lojas', 'loj', 'integracao_notas_dr']]
+
+                for i8, grupo8 in nfce_pend_int.groupby('rede_lojas'):
+                    dados_nfce_pend_int = i8
+                    if not nfce_pend_int.empty:
+                        st.error(
+                            f"{dados_nfce_pend_int}", icon="🚨")
+                    else:
+                        st.write("SEM ERROS PARA APRESENTAR")
     with col2:
-        st.write()
+        st.write("")
 
 
 ########################### NOTIFICAÇÕES ###################################
@@ -243,10 +270,10 @@ with st.sidebar.container():
     col01, col02 = st.columns(2)
     # st.write(grupo4)
     with col01:
-        st.metric("Clientes", f"{sum_clientes}", f'Meta 100')
+        st.metric("Clientes", f"{sum_clientes}", f'Meta 50')
         st.write("")
     with col02:
-        st.metric("Lojas Atendidas", f"{sum_lojas}", f"Meta 500")
+        st.metric("Lojas Atendidas", f"{sum_lojas}", f"Meta 100")
         st.write("")
 
     col03, col04 = st.columns(2)
