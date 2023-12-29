@@ -59,7 +59,7 @@ with st.sidebar:
         # st.header('FRONT FLUX')
         st.markdown(
             "<h1 style='text-align: center; margin: 0 0 0 0;'>FRONT FLUX</h1>", unsafe_allow_html=True)
-        st.image("top-logo_M.png", width=None)
+        st.image("top-logo_P.png", width=None)
         # st.markdown( "<h5 style='text-align: center; margin: 0 0 0 0;'>Gerencie seu Frente de Loja</h5>", unsafe_allow_html=True)
     with col3:
         st.write()
@@ -233,13 +233,30 @@ with st.container():
             with st.expander(f"Alertas Scanntech - :name_badge: {total_alertas_scantec} PDV´s"):
                 pdv_scantec_offline = result_pdv[result_pdv['dados_nfce_pdv_scanntech'] == '0']
                 pdv_scantec_offline = pdv_scantec_offline[[
-                    'rede_lojas', 'pdv']]
+                    'rede_lojas', 'pdv', 'loj']]
 
                 for i7, grupo7 in pdv_scantec_offline.groupby('pdv') and pdv_scantec_offline.groupby('rede_lojas'):
                     scantecerros_cli = i7
+                    # grupo7
+                    grupo7_format_pdv = pd.Series(grupo7['pdv']).to_list()[
+                        :]
+                    grupo7_format_strings_pdv = [str(valor)
+                                                 for valor in grupo7_format_pdv]
+                    grupo7_format_loj = pd.Series(grupo7['loj']).to_list()[
+                        :]
+                    grupo7_format_strings_loj = [str(valor)
+                                                 for valor in grupo7_format_loj]
+
                     if not pdv_scantec_offline.empty:
                         st.error(
                             f"{scantecerros_cli}", icon="🚨")
+                        for string_valor_loj in grupo7_format_strings_loj:
+                            serie_pdv_alert_scntc_loj = string_valor_loj
+                        for string_valor_pdv in grupo7_format_strings_pdv:
+                            serie_pdv_alert_scntc_pdv = string_valor_pdv
+                            st.warning(
+                                F"Loja:{string_valor_loj} - {string_valor_pdv}")
+
                     else:
                         st.write("SEM ERROS PARA APRESENTAR")
 
@@ -373,7 +390,7 @@ with st. container():
                 total_pdvs_loja = result_pdv[result_pdv['cli'] == id_cli]
                 total_pdvs_loja = total_pdvs_loja['pdv']
                 total_pdvs_loja = len(total_pdvs_loja)
-
+                # Pega data e hora da NFCe e coloca como ultimo recebimento de dados
                 pdv_last_nfce_sort = result_pdv.sort_values(
                     by='dados_nfce_pdv_data_fech', ascending=False)
                 pdv_last_nfce_sort = pdv_last_nfce_sort[
@@ -400,19 +417,22 @@ with st. container():
                         st.warning(f' {con_ve}')
                     else:
                         st.success(f"{con_ve}")
+
                 with col3:
                     st.caption(
                         "JAVA", help="Versão do Java instalado no Concentrador.")
                     st.info(f"{java_ve}")
+
                 with col4:
                     st.caption(
                         "HDSCAN", help="Percentual de uso do HD")
-                    if hd_livre <= f'60':
+                    if hd_livre <= (f'60'):
                         st.success(f"{hd_livre} %")
-                    elif hd_livre <= f'80':
+                    elif hd_livre <= (f'80'):
                         st.warning(f"{hd_livre} %")
                     else:
                         st.error(f"{hd_livre} %")
+
                 with col5:
                     st.caption(
                         "Backup", help="Tamanho |EM GB| do Backup")
@@ -477,9 +497,35 @@ with st. container():
                         st.error(f"{integracao_notas_dr}")
                 with col14:
                     st.caption(
-                        "Ver PDVs", help="Click para ativar e visualizar a lista de PDV´s de sua loja.")
+                        "Detalhes", help="Click para ativar a opção desejada. (:shopping_trolley:) Lista de PDV´s. (:moneybag:) Dados Fechamento do dia anterior")
                     mostrar_pdvs = st.toggle(
-                        f':eye:', key=id_cli+id_loja)
+                        f':shopping_trolley:', key=id_cli+id_loja+'1')
+                    mostrar_dados_fin = st.toggle(
+                        f':moneybag:', key=id_cli+id_loja+'2')
+
+                if mostrar_dados_fin:
+                    col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
+                    with col1:
+                        st.caption('Total Redução :moneybag:')
+                        st.info("R$ 27.585,23")
+                    with col2:
+                        st.caption('Total Itens :moneybag:')
+                        st.info("R$ 27.585,23")
+                    with col3:
+                        st.caption('Total Nfc´s :moneybag:')
+                        st.info("R$ 27.585,23")
+                    with col4:
+                        st.write()
+                    with col5:
+                        st.caption('Total Sangrias :moneybag:')
+                        st.info("R$ 2.500,00")
+
+                    with col6:
+                        st.caption('Lucro % medio :moneybag:')
+                        st.info("32%")
+                    with col7:
+                        st.caption('CAC :moneybag:')
+                        st.info("R$ 85,23")
 
                 st.caption(f":hammer_and_wrench: {pdv_last_nfce}")
                 st.divider()
