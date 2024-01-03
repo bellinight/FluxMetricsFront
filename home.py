@@ -138,16 +138,19 @@ numero_lojas_atualizadas = len(notifica_atualizadas_cent)
 
 
 ############################# ----- Conexão PDV´s ----- #############################
+result_pdv_ori = result_pdv[result_pdv['ult_ca'] != '102324']
+result_pdv_ori['dados_nfce_pdv_data_fech'] = pd.to_datetime(
+    result_pdv_ori['dados_nfce_pdv_data_fech'])
+result_pdv_ori = result_pdv_ori.sort_values(
+    by='dados_nfce_pdv_data_fech', ascending=False)
 
 result_pdv = result_pdv.sort_values(by='ID', ascending=False)
 result_pdv = result_pdv.drop_duplicates(
     subset=['cli', 'loj', 'pdv'])[['rede_lojas', 'cli', 'loj', 'pdv', 'pdv_at', 'pdv_ve', 'ult_ca', 'pdv_at_id', 'pdv_rej', 'dados_nfce_pdv_numero', 'dados_nfce_pdv_situacao', 'dados_nfce_pdv_valor', 'dados_nfce_pdv_usuario', 'dados_nfce_pdv_enviado', 'dados_nfce_pdv_data_fech', 'dados_nfce_pdv_scanntech', 'dados_nfce_pdv_email', 'dados_nfce_pdv_url_code', 'dados_nfce_pdv_nfemissao']]
-
-########################### Variáveis de Filtro para PDV #########################
+######################### Variáveis de Filtro para PDV #########################
 result_pdv_filter = pd.unique(result_pdv['loj'])
 pdvs = result_pdv[['rede_lojas', 'pdv', 'loj', 'cli']]
 sum_pdvs = len(pdvs)
-
 
 ###########################  CAMPO NA SIDEBAR PARA SELEÇÃO DA REDE ##############################
 
@@ -248,15 +251,16 @@ with st.container():
                                                  for valor in grupo7_format_loj]
 
                     if not pdv_scantec_offline.empty:
-                        st.error(
-                            f"{scantecerros_cli}", icon="🚨")
-                        for string_valor_loj in grupo7_format_strings_loj:
-                            serie_pdv_alert_scntc_loj = string_valor_loj
-                        for string_valor_pdv in grupo7_format_strings_pdv:
-                            serie_pdv_alert_scntc_pdv = string_valor_pdv
-                            st.warning(
-                                F"Loja:{string_valor_loj} - {string_valor_pdv}")
 
+                        if st.toggle(f'REDE: {scantecerros_cli}', key=scantecerros_cli):
+                            for string_valor_loj in grupo7_format_strings_loj:
+                                serie_pdv_alert_scntc_loj = string_valor_loj
+                            for string_valor_pdv in grupo7_format_strings_pdv:
+                                serie_pdv_alert_scntc_pdv = string_valor_pdv
+                                st.warning(
+                                    F"Loja:{string_valor_loj} - {string_valor_pdv}")
+                        else:
+                            st.write()
                     else:
                         st.write("SEM ERROS PARA APRESENTAR")
 
@@ -264,6 +268,7 @@ with st.container():
             total_alertas_nfce_pend = result_conc_ori[result_conc_ori['integracao_notas_dr'] > '0']
             total_alertas_nfce_pend = len(
                 total_alertas_nfce_pend['rede_lojas'])
+
             with st.expander(f"NFCe´s Pendentes - :name_badge: {total_alertas_nfce_pend} lojas"):
                 nfce_pend_int = result_conc_ori[result_conc_ori['integracao_notas_dr'] > '0']
                 nfce_pend_int = nfce_pend_int[[
@@ -334,8 +339,6 @@ with st.sidebar.container():
 
             # st.write(i5)
 
-########################### Verificação de Notas Integradas ##############################
-
 
 # Layout para apresentação de dados da Central e PDV´s
 with st. container():
@@ -391,14 +394,11 @@ with st. container():
                 total_pdvs_loja = total_pdvs_loja['pdv']
                 total_pdvs_loja = len(total_pdvs_loja)
                 # Pega data e hora da NFCe e coloca como ultimo recebimento de dados
-                pdv_last_nfce_sort = result_pdv.sort_values(
-                    by='dados_nfce_pdv_data_fech', ascending=False)
-                pdv_last_nfce_sort = pdv_last_nfce_sort[
-                    pdv_last_nfce_sort['cli'] == id_cli]
-                pdv_last_nfce_sort['dados_nfce_pdv_data_fech'] = pd.to_datetime(
-                    pdv_last_nfce_sort['dados_nfce_pdv_data_fech'])
-                pdv_last_nfce = pdv_last_nfce_sort['dados_nfce_pdv_data_fech'].dt.strftime(
-                    '%d/%m/%y %H:%M:%S').to_list()[0]
+
+                pdv_last_nfce = result_pdv_ori[result_pdv_ori['cli'] == id_cli]
+                pdv_last_nfce = pdv_last_nfce['dados_nfce_pdv_data_fech'].dt.strftime(
+                    '%d/%m/%y %H:%M:%S').to_list()[
+                    0]
 
                 ####### LAYOUT DE APRESENTAÇÃO DE DADOS DA CENTRAL ###########
                 col1, col2, col3, col4, col5, col6, col7, col8, col9, col10, col11, col12, col13, col14 = st.columns(
@@ -406,7 +406,8 @@ with st. container():
 
                 with col1:
                     st.caption(
-                        f"PDV´s", help="Soma de todos os PDV´s existentes na loja")
+                        f"PDV´s ", help="Soma de todos os PDV´s existentes na loja")
+
                     st.info(f"Total: {total_pdvs_loja}")
 
                 with col2:
@@ -623,7 +624,7 @@ with st. container():
                                 with col03:
                                     st.caption(
                                         'Ult. Carga', help="Data de registro da ultima carga enviada para os PDV´s")
-                                    if (f"{ve_pdv}") == '102324':
+                                    if (f"{pdv_carg}") == '23/10/24':
                                         st.warning(f"OFF")
                                     elif (f"{pdv_carg}") < data_hora_atual:
                                         st.error(f"{pdv_carg}")
