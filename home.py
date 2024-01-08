@@ -10,6 +10,25 @@ st.set_page_config(page_title="Front FLUX", page_icon=":chart",
                    layout="wide", initial_sidebar_state="auto", menu_items=None)
 
 
+# Hack de Background retirado do link: https://medium.com/@hriskikesh.yadav332/setting-cool-background-image-in-streamlit-app-cab8c8ee2a8f
+
+page_element = """
+<style>
+[data-testid="stAppViewContainer"]{
+  background-image: url("https://connectaiptv.com/fluxmanager/fundo-mkt-front_flux.jpg");
+  background-size: cover;
+}
+[data-testid="stHeader"]{
+  background-color: rgba(0,0,0,0);
+}
+[data-testid="stToolbar"]{
+  right: 2rem;
+  background-color: transparent;
+  background-size: cover;
+}
+</style>
+"""
+st.markdown(page_element, unsafe_allow_html=True)
 ########################## Funções Distintas ###############################################
 
 
@@ -161,16 +180,112 @@ with st.sidebar:
 
     conc_dados_completos = result_conc_ori[result_conc_ori['rede_lojas']
                                            == f"{selecao_rede_me}"]
-
+    st.caption(f"Last Data: \n {controlid_rede} - {controlid_razao}")
 #######################################################
-
-with st.container():
-    col1, col2, col3 = st.columns([4, 1, 6])
-    with col3:
-        col01, col02, col03, col04 = st.columns(
-            [1, 1, 1, 1])
-        ########################################################################
+st.sidebar.subheader('Opções de Visualização')
+########################### Dados Gerenciais ###################################
+if st.sidebar.toggle('Dados Gerenciais', value=True):
+    with st.container():
+        col01, col02, col03, col04, col05, col06 = st.columns(
+            [1, 1, 1, 1, 2, 2])
+        # st.write(grupo4)
         with col01:
+            st.metric("Clientes", f"{sum_clientes}", f'Meta 50')
+            st.write("")
+        with col02:
+            st.metric("Lojas Atendidas", f"{sum_lojas}", f"Meta 100")
+            st.write("")
+        with col03:
+            st.metric(f"Lojas Atualizadas - {mlogic_ver_hom}", f"{numero_lojas_atualizadas}",
+                      f"Defict {numero_lojas_atualizaveis}")
+            st.write("")
+        with col04:
+            st.metric("PDV´s Gerenciados", f"{sum_pdvs}", f"Meta 1000")
+            st.write("")
+        with col05:
+            with st.expander(f"Centrais Atualizadas - {numero_lojas_atualizadas}"):
+                st.write()
+                for i6, grupo6 in notifica_atualizadas_cent.groupby('razsoc'):
+                    atualizadas_cent_rede = i6
+                    atualizadas_cent_rede_nome = grupo6['rede_lojas'].to_list()[
+                        0]
+
+                    if not notifica_atualizadas_cent.empty:
+                        st.success(
+                            f"||{atualizadas_cent_rede_nome}|| - {atualizadas_cent_rede}")
+                    else:
+                        st.write("SEM ERROS PARA APRESENTAR")
+
+                # st.write(grupo6)
+            total_alertas_scantec = result_pdv[result_pdv['dados_nfce_pdv_scanntech'] == '0']
+            total_alertas_scantec = len(total_alertas_scantec['rede_lojas'])
+            with st.expander(f"Alertas Scanntech - :name_badge: {total_alertas_scantec} PDV´s"):
+                pdv_scantec_offline = result_pdv[result_pdv['dados_nfce_pdv_scanntech'] == '0']
+                pdv_scantec_offline = pdv_scantec_offline[[
+                    'rede_lojas', 'pdv', 'loj']]
+
+                for i7, grupo7 in pdv_scantec_offline.groupby('pdv') and pdv_scantec_offline.groupby('rede_lojas'):
+                    scantecerros_cli = i7
+                # grupo7
+                grupo7_format_pdv = pd.Series(grupo7['pdv']).to_list()[
+                    :]
+                grupo7_format_strings_pdv = [str(valor)
+                                             for valor in grupo7_format_pdv]
+                grupo7_format_loj = pd.Series(grupo7['loj']).to_list()[
+                    :]
+                grupo7_format_strings_loj = [str(valor)
+                                             for valor in grupo7_format_loj]
+
+                if not pdv_scantec_offline.empty:
+
+                    if st.toggle(f'REDE: {scantecerros_cli}', key=scantecerros_cli):
+                        for string_valor_loj in grupo7_format_strings_loj:
+                            serie_pdv_alert_scntc_loj = string_valor_loj
+                        for string_valor_pdv in grupo7_format_strings_pdv:
+                            serie_pdv_alert_scntc_pdv = string_valor_pdv
+                            st.warning(
+                                F"Loja:{string_valor_loj} - {string_valor_pdv}")
+                    else:
+                        st.write()
+                else:
+                    st.write("SEM ERROS PARA APRESENTAR")
+        with col06:
+            with st.expander(f"Centrais Desatualizadas - {numero_lojas_atualizaveis}"):
+                st.write()
+                # notifica_erros_carga_rede_bridge = notifica_erros_bridge['rede_lojas'].to_list()[0]
+                for i5, grupo5 in notifica_atualizaveis_pend.groupby('razsoc'):
+                    atualizaveis_cent_rede = i5
+                    atualizaveis_cent_rede_nome = grupo5['rede_lojas'].to_list()[
+                        0]
+
+                    if not notifica_atualizaveis_pend.empty:
+                        st.error(
+                            f"||{atualizaveis_cent_rede_nome}|| - {atualizaveis_cent_rede}")
+                    else:
+                        st.write("SEM ERROS PARA APRESENTAR")
+
+                # st.write(i5)
+                    total_alertas_nfce_pend = result_conc_ori[result_conc_ori['integracao_notas_dr'] > '0']
+                total_alertas_nfce_pend = len(
+                    total_alertas_nfce_pend['rede_lojas'])
+
+            with st.expander(f"NFCe´s Pendentes - :name_badge: {total_alertas_nfce_pend} lojas"):
+                nfce_pend_int = result_conc_ori[result_conc_ori['integracao_notas_dr'] > '0']
+                nfce_pend_int = nfce_pend_int[[
+                    'rede_lojas', 'loj', 'integracao_notas_dr']]
+
+                for i8, grupo8 in nfce_pend_int.groupby('rede_lojas'):
+                    dados_nfce_pend_int = i8
+                    if not nfce_pend_int.empty:
+                        st.error(
+                            f"{dados_nfce_pend_int}", icon="🚨")
+                    else:
+                        st.write("SEM ERROS PARA APRESENTAR")
+if st.sidebar.toggle("Notificações e Erros", value=True):
+    with st.container():
+        col1, col2, col3, col4 = st.columns(4)
+        ########################################################################
+        with col1:
             st.caption("ERROS NO SGBD")
             notifica_erros_sgbd = result_conc_ori[result_conc_ori['ser_sgbd'] == 'Stopped']
             notifica_erros_sgbd = notifica_erros_sgbd[[
@@ -183,8 +298,8 @@ with st.container():
                         f'{sgbd_erros_rede}', icon="🚨")
                 if notifica_erros_sgbd.empty:
                     st.write("SEM ERROS PARA APRESENTAR")
-        ########################################################################
-        with col02:
+            ########################################################################
+        with col2:
             st.caption("NFCE - TOOLKIT")
             notifica_erros_tk = result_conc_ori[result_conc_ori['ser_tk_app'] == 'Stopped']
             notifica_erros_tk = notifica_erros_tk[[
@@ -198,8 +313,8 @@ with st.container():
                     st.toast(f'TK OFFLINE - Verifique a lista')
                 if notifica_erros_tk.empty:
                     st.write("SEM ERROS PARA APRESENTAR")
-        ########################################################################
-        with col03:
+            ########################################################################
+        with col3:
             st.caption("CARGA ONLINE")
             notifica_erros_carga = result_conc_ori[result_conc_ori['ser_carg_on'] == 'Stopped']
             notifica_erros_carga = notifica_erros_carga[[
@@ -212,8 +327,8 @@ with st.container():
                         f"{carga_erros_rede}", icon="🚨")
                 else:
                     st.write("SEM ERROS PARA APRESENTAR")
-        ########################################################################
-        with col04:
+            ########################################################################
+        with col4:
             st.caption("DATABRIDGE")
             notifica_erros_bridge = result_conc_ori[result_conc_ori['ser_dbridge'] == 'Stopped']
             notifica_erros_bridge = notifica_erros_bridge[[
@@ -228,122 +343,9 @@ with st.container():
                 else:
                     st.write("SEM ERROS PARA APRESENTAR")
 
-    with col1:
-        col1, col2 = st.columns(2)
-        with col1:
-            total_alertas_scantec = result_pdv[result_pdv['dados_nfce_pdv_scanntech'] == '0']
-            total_alertas_scantec = len(total_alertas_scantec['rede_lojas'])
-            with st.expander(f"Alertas Scanntech - :name_badge: {total_alertas_scantec} PDV´s"):
-                pdv_scantec_offline = result_pdv[result_pdv['dados_nfce_pdv_scanntech'] == '0']
-                pdv_scantec_offline = pdv_scantec_offline[[
-                    'rede_lojas', 'pdv', 'loj']]
-
-                for i7, grupo7 in pdv_scantec_offline.groupby('pdv') and pdv_scantec_offline.groupby('rede_lojas'):
-                    scantecerros_cli = i7
-                    # grupo7
-                    grupo7_format_pdv = pd.Series(grupo7['pdv']).to_list()[
-                        :]
-                    grupo7_format_strings_pdv = [str(valor)
-                                                 for valor in grupo7_format_pdv]
-                    grupo7_format_loj = pd.Series(grupo7['loj']).to_list()[
-                        :]
-                    grupo7_format_strings_loj = [str(valor)
-                                                 for valor in grupo7_format_loj]
-
-                    if not pdv_scantec_offline.empty:
-
-                        if st.toggle(f'REDE: {scantecerros_cli}', key=scantecerros_cli):
-                            for string_valor_loj in grupo7_format_strings_loj:
-                                serie_pdv_alert_scntc_loj = string_valor_loj
-                            for string_valor_pdv in grupo7_format_strings_pdv:
-                                serie_pdv_alert_scntc_pdv = string_valor_pdv
-                                st.warning(
-                                    F"Loja:{string_valor_loj} - {string_valor_pdv}")
-                        else:
-                            st.write()
-                    else:
-                        st.write("SEM ERROS PARA APRESENTAR")
-
-        with col2:
-            total_alertas_nfce_pend = result_conc_ori[result_conc_ori['integracao_notas_dr'] > '0']
-            total_alertas_nfce_pend = len(
-                total_alertas_nfce_pend['rede_lojas'])
-
-            with st.expander(f"NFCe´s Pendentes - :name_badge: {total_alertas_nfce_pend} lojas"):
-                nfce_pend_int = result_conc_ori[result_conc_ori['integracao_notas_dr'] > '0']
-                nfce_pend_int = nfce_pend_int[[
-                    'rede_lojas', 'loj', 'integracao_notas_dr']]
-
-                for i8, grupo8 in nfce_pend_int.groupby('rede_lojas'):
-                    dados_nfce_pend_int = i8
-                    if not nfce_pend_int.empty:
-                        st.error(
-                            f"{dados_nfce_pend_int}", icon="🚨")
-                    else:
-                        st.write("SEM ERROS PARA APRESENTAR")
-    with col2:
-        st.write("")
-
-
-########################### NOTIFICAÇÕES ###################################
-with st.sidebar.container():
-    st.caption(f"Last Data: \n {controlid_rede} - {controlid_razao}")
-    st.divider()
-    st.container()
-    col01, col02 = st.columns(2)
-    # st.write(grupo4)
-    with col01:
-        st.metric("Clientes", f"{sum_clientes}", f'Meta 50')
-        st.write("")
-    with col02:
-        st.metric("Lojas Atendidas", f"{sum_lojas}", f"Meta 100")
-        st.write("")
-
-    col03, col04 = st.columns(2)
-    with col03:
-        st.metric(f"Lojas Atualizadas - {mlogic_ver_hom}", f"{numero_lojas_atualizadas}",
-                  f"Defict {numero_lojas_atualizaveis}")
-        st.write("")
-    with col04:
-        st.metric("PDV´s Gerenciados", f"{sum_pdvs}", f"Meta 1000")
-        st.write("")
-    tab1, tab2 = st.tabs(
-        ["Centrais Atualizadas", "Centrais Desatualizadas"])
-    with tab1:
-        with st.expander(f"Centrais Atualizadas - {numero_lojas_atualizadas}"):
-            st.write()
-            for i6, grupo6 in notifica_atualizadas_cent.groupby('razsoc'):
-                atualizadas_cent_rede = i6
-                atualizadas_cent_rede_nome = grupo6['rede_lojas'].to_list()[0]
-
-                if not notifica_atualizadas_cent.empty:
-                    st.success(
-                        f"||{atualizadas_cent_rede_nome}|| - {atualizadas_cent_rede}")
-                else:
-                    st.write("SEM ERROS PARA APRESENTAR")
-
-            # st.write(grupo6)
-    with tab2:
-        with st.expander(f"Centrais Desatualizadas - {numero_lojas_atualizaveis}"):
-            st.write()
-            # notifica_erros_carga_rede_bridge = notifica_erros_bridge['rede_lojas'].to_list()[0]
-            for i5, grupo5 in notifica_atualizaveis_pend.groupby('razsoc'):
-                atualizaveis_cent_rede = i5
-                atualizaveis_cent_rede_nome = grupo5['rede_lojas'].to_list()[0]
-
-                if not notifica_atualizaveis_pend.empty:
-                    st.error(
-                        f"||{atualizaveis_cent_rede_nome}|| - {atualizaveis_cent_rede}")
-                else:
-                    st.write("SEM ERROS PARA APRESENTAR")
-
-            # st.write(i5)
-
 
 # Layout para apresentação de dados da Central e PDV´s
 with st. container():
-
-    st.divider()
 
     for cli, grupoconc in conc_dados_completos.groupby('cli'):
 
@@ -660,6 +662,9 @@ with st. container():
                                     if (f"{dados_nfce_pdv_data_fech}") < data_carga_conc:
                                         st.error(
                                             f"OCIOSO")
+                                    elif (f"{dados_nfce_pdv_data_fech}") < data_hora_atual:
+                                        st.error(
+                                            f"{dados_nfce_pdv_data_fech}")
                                     elif (f"{dados_nfce_pdv_data_fech}") < (f"{pdv_carg}"):
                                         st.error(f"OFFLINE")
                                         st.toast(
@@ -756,6 +761,26 @@ with st. container():
                     else:
                         st.write()
 
+############################## Graficos Home ################################
+
+# Qtda de vendas enviadas para scantec
+
+total_envios_snct = len(
+    result_pdv_ori[result_pdv_ori['dados_nfce_pdv_scanntech'] == '1'])
+total_envios_falhos_snct = len(
+    result_pdv_ori[result_pdv_ori['dados_nfce_pdv_scanntech'] == '0'])
+total_envios_nulos_snct = len(
+    result_pdv_ori[result_pdv_ori['dados_nfce_pdv_scanntech'] == ''])
+
+
+# st.header(total_envios_snct)
+# st.header(total_envios_falhos_snct)
+# st.header(total_envios_nulos_snct)
+
+with st.container():
+    st.write("Lugar")
+
+############################################################################
 
 # time.sleep(60)
 # load_data_conc()
