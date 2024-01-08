@@ -346,7 +346,6 @@ if st.sidebar.toggle("Notificações e Erros", value=True):
 
 # Layout para apresentação de dados da Central e PDV´s
 with st. container():
-
     for cli, grupoconc in conc_dados_completos.groupby('cli'):
 
         # st.table(grupoconc)
